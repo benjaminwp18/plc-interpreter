@@ -38,17 +38,35 @@
       ((eq? '<  (operator expression)) (<           (value-generic(first-operand expression)) (value-generic(second-operand expression))))
       ((eq? '<= (operator expression)) (<=          (value-generic(first-operand expression)) (value-generic(second-operand expression))))
       ((eq? '>= (operator expression)) (>=          (value-generic(first-operand expression)) (value-generic(second-operand expression))))
-      ((eq? '&& (operator expression)) (and         (value-generic(first-operand expression)) (value-generic(second-operand expression))))
-      ((eq? '|| (operator expression)) (or          (value-generic(first-operand expression)) (value-generic(second-operand expression))))
+      ((eq? '&& (operator expression)) (short-circuit-and expression))
+      ((eq? '|| (operator expression)) (short-circuit-or  expression))
       ((eq? '!  (operator expression)) (not         (value-generic(first-operand expression))))
       (else (error ' bad-op "Invalid Operator")))))
+
+; version of and function with explicit short circuiting
+(define short-circuit-and
+  (lambda (expression)
+    (cond
+      ((eq? #f (value-generic(first-operand expression)))  #f)
+      ((eq? #f (value-generic(second-operand expression))) #f)
+      (else #t))))
+
+; version of or function with explicit short circuiting
+(define short-circuit-or
+  (lambda (expression)
+    (cond
+      ((eq? #t (value-generic(first-operand expression)))  #t)
+      ((eq? #t (value-generic(second-operand expression))) #t)
+      (else #f))))
 
 ; value-generic is a function to determine if an expression needs to be handled by value-boolean or value-int
 (define value-generic
   (lambda (expression)
     (cond
+      ((number? expression) (value-int expression))
+      ((boolean? expression) (value-boolean expression))
       ((in-list? (operator expression) '(+ - * / %)) (value-int expression))
-      ((in-list? (operator expression) '(== != > < <= >= && || !)))
+      ((in-list? (operator expression) '(== != > < <= >= && || !)) (value-boolean expression))
       (else (error ' bad-op "Invalid Operator")))))
 
 ; in-list takes an atom and a list and returns true if the element is in the list and false if the element is not in the list
