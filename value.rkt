@@ -1,10 +1,8 @@
 #lang racket
+
 (provide (all-defined-out))
 
-(require "stateAbstr.rkt")
-
-; Code written by Kyle
-
+(require "binding.rkt")
 
 ; value-int is a function that handles +, -, *, /, %, and the unary -
 (define value-int
@@ -68,7 +66,7 @@
     (cond
       ((number? expression) (value-int expression state))
       ((boolean? expression) (value-boolean expression state))
-      ((bound? expression state) (lookup-binding expression state))
+      ((eq? (binding-status expression state) binding-init) (binding-lookup expression state))
       ((in-list? (operator expression) '(+ - * / %)) (value-int expression state))
       ((in-list? (operator expression) '(== != > < <= >= && || !)) (value-boolean expression state))
       (else (error ' bad-op "Invalid Operator")))))
