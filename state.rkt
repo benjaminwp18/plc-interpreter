@@ -4,8 +4,6 @@
 (require "value.rkt")
 (require "common.rkt")
 
-; TODO: value_generic state
-
 (define interpret
   (lambda (tree)
     (binding-lookup 'return (state-statement-list tree (binding-create 'return binding-uninit empty-stt)))))
@@ -28,29 +26,29 @@
 (define state-declare
   (lambda (expr state)
     (if (initializes? expr)
-        (binding-create (variable expr) (value-generic (value expr)) state)
+        (binding-create (variable expr) (value-generic (value expr) state) state)
         (binding-create (variable expr) binding-uninit state))))
 
 (define state-assign
   (lambda (expr state)
-    (binding-set (variable expr) (value-generic (value expr)) state)))
+    (binding-set (variable expr) (value-generic (value expr) state) state)))
 
 (define state-if
   (lambda (expr state)
     (cond
-      [(value-generic (conditional-expr expr)) (state-generic (then-expr expr) state)]
+      [(value-generic (conditional-expr expr) state) (state-generic (then-expr expr) state)]
       [(contains-else? expr)                   (state-generic (else-expr expr) state)]
       [else                                    state])))
 
 (define state-while
   (lambda (expr state)
-    (if (eq? #f (value-generic (conditional-expr expr)))
+    (if (eq? #f (value-generic (conditional-expr expr) state))
       state
       (state-while expr (state-generic (body-expr expr) state)))))
 
 (define state-return
   (lambda (expr state)
-    (binding-set 'return (value-generic (return-value expr)) state)))
+    (binding-set 'return (value-generic (return-value expr) state) state)))
 
 ; ====================================
 ; Helper functions
