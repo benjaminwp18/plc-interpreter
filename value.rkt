@@ -28,7 +28,7 @@
 ; value-boolean is a function that handles ==, !=, >, <, <=, >=, &&, ||, !
 (define (value-boolean expression state)
     (cond
-      [(boolean? expression) expression]
+      [(boolean-type? expression) (boolean-value expression)]
       [(eq? '== (operator expression)) (eq?         (value-generic (first-operand expression) state) (value-generic (second-operand expression) state))]
       [(eq? '!= (operator expression)) (not (eq?    (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)))]
       [(eq? '>  (operator expression)) (>           (value-generic (first-operand expression) state) (value-generic (second-operand expression) state))]
@@ -54,12 +54,20 @@
       [(eq? #t (value-generic (second-operand expression) state)) #t]
       [else #f]))
 
+(define (boolean-type? expression)
+  (or (eq? expression 'true) (eq? expression 'false)))
+
+(define (boolean-value expression)
+  (eq? expression 'true))
+
 ; value-generic is a function to determine if an expression needs to be handled by value-boolean or value-int
 (define (value-generic expression state)
     (cond
       [(number? expression) (value-int expression state)]
-      [(boolean? expression) (value-boolean expression state)]
+      [(boolean-type? expression) (value-boolean expression state)]
       [(eq? (binding-status expression state) binding-init) (binding-lookup expression state)]
+      [(eq? (binding-status expression state) binding-uninit) (error (~a expression " has not been assigned a value"))]
+      [(not (pair? expression)) (error (~a expression " has not been declared"))]
       [(in-list? (operator expression) '(+ - * / %)) (value-int expression state)]
       [(in-list? (operator expression) '(== != > < <= >= && || !)) (value-boolean expression state)]
       [else (error ' bad-op "Invalid Operator")]))
