@@ -1,68 +1,67 @@
 #lang racket
 
-(require "stateAbstr.rkt")
+(require "binding.rkt")
 (require "kylecode.rkt")
+(require "common.rkt")
 
 ; TODO: value_generic state
 
 (define interpret
   (lambda (tree)
-    (lookup-binding 'return (M_statement-list tree (create-binding 'return uninitialized empty-stt)))))
+    (binding-lookup 'return (state-statement-list tree (binding-create 'return binding-uninit empty-stt)))))
 
-(define M_statement-list
+(define state-statement-list
   (lambda (tree state)
     (if (null? tree)
         state
-        (M_statement-list (next-statements tree) (M_state (first-statement tree) state)))))
+        (state-statement-list (next-statements tree) (state-generic (first-statement tree) state)))))
 
-(define M_state
+(define state-generic
   (lambda (expr state)
     (cond
-      ((eq? (statement-type expr) 'var)    (M_declare (statement-body expr) state))
-      ((eq? (statement-type expr) '=)      (M_assign  (statement-body expr) state))
-      ((eq? (statement-type expr) 'if)     (M_if      (statement-body expr) state))
-      ((eq? (statement-type expr) 'while)  (M_while   (statement-body expr) state))
-      ((eq? (statement-type expr) 'return) (M_return  (statement-body expr) state)))))
+      [(eq? (statement-type expr) 'var)    (state-declare (statement-body expr) state)]
+      [(eq? (statement-type expr) '=)      (state-assign  (statement-body expr) state)]
+      [(eq? (statement-type expr) 'if)     (state-if      (statement-body expr) state)]
+      [(eq? (statement-type expr) 'while)  (state-while   (statement-body expr) state)]
+      [(eq? (statement-type expr) 'return) (state-return  (statement-body expr) state)])))
 
-(define M_declare
+(define state-declare
   (lambda (expr state)
     (if (initializes? expr)
-        (create-binding (variable expr) (value-generic (value expr)) state)
-        (create-binding (variable expr) uninitialized state))))
+        (binding-create (variable expr) (value-generic (value expr)) state)
+        (binding-create (variable expr) binding-uninit state))))
 
-(define M_assign
+(define state-assign
   (lambda (expr state)
-    (set-binding (variable expr) (value-generic (value expr)) state)))
+    (binding-set (variable expr) (value-generic (value expr)) state)))
 
-(define M_if
+(define state-if
   (lambda (expr state)
     (cond
-      ((value-generic (conditional-expr expr)) (M_state (then-expr expr) state))
-      ((contains-else? expr)                   (M_state (else-expr expr) state))
-      (else                                    state))))
+      [(value-generic (conditional-expr expr)) (state-generic (then-expr expr) state)]
+      [(contains-else? expr)                   (state-generic (else-expr expr) state)]
+      [else                                    state])))
 
-(define M_while
+(define state-while
   (lambda (expr state)
     (if (eq? #f (value-generic (conditional-expr expr)))
       state
-      (M_while expr (M_state (body-expr expr) state)))))
+      (state-while expr (state-generic (body-expr expr) state)))))
 
-(define M_return
+(define state-return
   (lambda (expr state)
-    (set-binding 'return (value-generic (return-value expr)) state)))
+    (binding-set 'return (value-generic (return-value expr)) state)))
 
 ; ====================================
 ; Helper functions
 
 (define initializes?
   (lambda (expr)
-    (not (null? (value-pos expr)))))
+    (not-null? (value-pos expr))))
 
 (define contains-else?
   (lambda (expr)
     (not-null? (else-expr-pos expr))))
-
-(define uninitialized '())
 
 ; ====================================
 ; Abstractions
