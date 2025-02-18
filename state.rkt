@@ -1,5 +1,7 @@
 #lang racket
 
+(provide interpret)
+
 (require "binding.rkt")
 (require "value.rkt")
 (require "common.rkt")
@@ -10,7 +12,7 @@
 
 (define state-statement-list
   (lambda (tree state)
-    (if (null? tree)
+    (if (or (null? tree) (not-null? (binding-lookup 'return state)))
         state
         (state-statement-list (next-statements tree) (state-generic (first-statement tree) state)))))
 
