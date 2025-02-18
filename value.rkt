@@ -18,7 +18,7 @@
 ; helper-minus is a helper function to make distinct operations for unary minus and subtraction. it checks if there is three elements in the list to perform subtraction, and does unary instead if there is only two elements
 (define (helper-minus expression state)
     (if (helper-is-binary expression) (- 0 (value-generic (first-operand expression) state))
-        (-         (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)))))
+        (-         (value-generic (first-operand expression) state) (value-generic (second-operand expression) state))))
 
 ; helper-is-binary is a helper function to check if a list contains more than two elements
 (define (helper-is-binary expression)
