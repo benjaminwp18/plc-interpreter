@@ -4,6 +4,8 @@
 (require "value.rkt")
 (require "common.rkt")
 
+(provide interpret)
+
 (define interpret
   (lambda (tree)
     (binding-lookup 'return (state-statement-list tree (binding-create 'return binding-uninit empty-stt)))))
