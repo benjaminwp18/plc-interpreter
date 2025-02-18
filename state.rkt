@@ -38,13 +38,13 @@
 (define state-if
   (lambda (expr state)
     (cond
-      [(value-generic (conditional-expr expr) state) (state-generic (then-expr expr) state)]
+      [(eq? (value-generic (conditional-expr expr) state) 'true) (state-generic (then-expr expr) state)]
       [(contains-else? expr)                   (state-generic (else-expr expr) state)]
       [else                                    state])))
 
 (define state-while
   (lambda (expr state)
-    (if (eq? #f (value-generic (conditional-expr expr) state))
+    (if (eq? 'false (value-generic (conditional-expr expr) state))
       state
       (state-while expr (state-generic (body-expr expr) state)))))
 
