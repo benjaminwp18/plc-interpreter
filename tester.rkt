@@ -7,7 +7,9 @@
 
 (define (test-src)
   (map
-   (lambda (str) (display (~a "Testing " str "...\n" (interpret (parser str)) "\n")))
+   (lambda (str) (display (~a "Testing " str "...\n"
+                              (with-handlers ([exn:fail? (lambda (v) (~a v "\n"))])
+                                (interpret (parser str)) "\n"))))
    (list-files "tests/src")))
 
 (define (test-html)
