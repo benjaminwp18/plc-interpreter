@@ -1,6 +1,6 @@
 #lang racket
 
-(provide (all-defined-out))
+(provide value-generic)
 
 (require "binding.rkt")
 
