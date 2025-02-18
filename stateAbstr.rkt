@@ -1,4 +1,5 @@
 #lang racket
+(provide (all-defined-out))
 
 (define (lookup-binding name state)
   (cond

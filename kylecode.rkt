@@ -1,4 +1,5 @@
 #lang racket
+(provide (all-defined-out))
 
 ; Code written by Kyle
 
