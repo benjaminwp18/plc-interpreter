@@ -1,7 +1,7 @@
 var x = 10;
 var y = 20;
 var z = true;
-while (z == true)
-  z = !z;
+while (y < 30)
+  y = y + 1;
 
-return z;
+return y;
