@@ -2,13 +2,18 @@
 
 (provide interpret)
 
+(require "simpleParser.rkt")
 (require "binding.rkt")
 (require "value.rkt")
 (require "common.rkt")
 
+; Takes a filename, calls parser with the filename, and returns the proper value
+(define (interpret filename)
+    (interpret_tree (parser filename)))
+
 ; Takes a syntax tree in list format and returns its return value
 ; Error if tree contains syntax errors
-(define (interpret tree)
+(define (interpret_tree tree)
     (binding-lookup 'return (state-statement-list tree (binding-create 'return binding-uninit empty-stt))))
 
 ; Recursively returns the state after a series of statement lists
