@@ -6,118 +6,105 @@
 
 ; value-int is a function that handles +, -, *, /, %, and the unary -
 (define (value-int expression state)
-   (cond
-     [(number? expression) expression]
-     [(eq? '+ (operator expression)) (+         (operand1 expression state) (operand2 expression state))]
-     [(eq? '- (operator expression))            (helper-minus expression state)]
-     [(eq? '* (operator expression)) (*         (operand1 expression state) (operand2 expression state))]
-     [(eq? '/ (operator expression)) (quotient  (operand1 expression state) (operand2 expression state))]
-     [(eq? '% (operator expression)) (remainder (operand1 expression state) (operand2 expression state))]
-     [else (error ' bad-op "Invalid Operator")]))
+  (cond
+    [(number? expression) expression]
+    [(eq? '+ (operator expression)) (+         (operand1 expression state) (operand2 expression state))]
+    [(eq? '- (operator expression)) (minus-or-negative expression state)]
+    [(eq? '* (operator expression)) (*         (operand1 expression state) (operand2 expression state))]
+    [(eq? '/ (operator expression)) (quotient  (operand1 expression state) (operand2 expression state))]
+    [(eq? '% (operator expression)) (remainder (operand1 expression state) (operand2 expression state))]
+    [else (error (~a "Invalid integer operator: " (operator expression)))]))
 
-; value-boolean is a function that handles ==, !=, >, <, <=, >=, &&, ||, !
+; value-boolean is a function that handles ==, !=, >, call/cc  <, <=, >=, &&, ||, !
 (define (value-boolean expression state)
-    (cond
-      [(boolean-type? expression) expression]
-      [(eq? '== (operator expression)) (equals expression state)]
-      [(eq? '!= (operator expression)) (not-equals expression state)]
-      [(eq? '>  (operator expression)) (greater-than expression state)]
-      [(eq? '<  (operator expression)) (less-than expression state)]
-      [(eq? '<= (operator expression)) (less-than-equals expression state)]
-      [(eq? '>= (operator expression)) (greater-than-equals expression state)]
-      [(eq? '&& (operator expression)) (short-circuit-and expression state)]
-      [(eq? '|| (operator expression)) (short-circuit-or  expression state)]
-      [(eq? '!  (operator expression)) (opposite expression state)]
-      [else (error ' bad-op "Invalid Operator")]))
+  (cond
+    [(boolean-literal? expression) expression]
+    [(eq? '== (operator expression)) (cond-eq expression state)]
+    [(eq? '!= (operator expression)) (cond-neq expression state)]
+    [(eq? '>  (operator expression)) (cond-gt expression state)]
+    [(eq? '<  (operator expression)) (cond-lt expression state)]
+    [(eq? '<= (operator expression)) (cond-leq expression state)]
+    [(eq? '>= (operator expression)) (cond-geq expression state)]
+    [(eq? '&& (operator expression)) (bool-and expression state)]
+    [(eq? '|| (operator expression)) (bool-or  expression state)]
+    [(eq? '!  (operator expression)) (bool-not expression state)]
+    [else (error (~a "Invalid boolean operator: " (operator expression)))]))
 
 ; value-generic is a function to determine if an expression needs to be handled by value-boolean or value-int
 (define (value-generic expression state)
-    (cond
-      [(number? expression) (value-int expression state)]
-      [(boolean-type? expression) (value-boolean expression state)]
-      [(eq? (binding-status expression state) binding-init) (binding-lookup expression state)]
-      [(eq? (binding-status expression state) binding-uninit) (error (~a expression " has not been assigned a value"))]
-      [(not (pair? expression)) (error (~a expression " has not been declared"))]
-      [(in-list? (operator expression) '(+ - * / %)) (value-int expression state)]
-      [(in-list? (operator expression) '(== != > < <= >= && || !)) (value-boolean expression state)]
-      [else (error ' bad-op "Invalid Operator")]))
+  (cond
+    [(number? expression) (value-int expression state)]
+    [(boolean-literal? expression) (value-boolean expression state)]
+    [(eq? (binding-status expression state) binding-init) (binding-lookup expression state)]
+    [(eq? (binding-status expression state) binding-uninit) (error (~a expression " has not been assigned a value"))]
+    [(not (pair? expression)) (error (~a expression " has not been declared"))]
+    [(in-list? (operator expression) '(+ - * / %)) (value-int expression state)]
+    [(in-list? (operator expression) '(== != > < <= >= && || !)) (value-boolean expression state)]
+    [else (error (~a "Invalid operator: " (operator expression)))]))
 
 ; ====================================
 ; helper functions
 
-; helper-minus is a helper function to make distinct operations for unary minus and subtraction. it checks if there is three elements in the list to perform subtraction, and does unary instead if there is only two elements
-(define (helper-minus expression state)
-    (if (helper-is-binary expression) (- 0 (operand1 expression state))
-        (-         (operand1 expression state) (operand2 expression state))))
+; if expression has 2 operands: return operand 1 - operand 2
+; else: return negative operand1
+(define (minus-or-negative expression state)
+  (if (has-second-operand? expression)
+      (- (operand1 expression state) (operand2 expression state))
+      (- 0 (operand1 expression state))))
 
-; helper-is-binary is a helper function to check if a list contains more than two elements
-(define (helper-is-binary expression)
-    (if (null? (third-element-null-check expression)) #t
-        #f))
-
-; function that implements = expression but returns booleans in string form
-(define (equals expression state)
-    (if (eq? (operand1 expression state) (operand2 expression state)) 'true
+; helper to convert Racket boolean conditional racket-op to 'true/'false atom conditional
+(define (build-condition expression state racket-op)
+  (if (racket-op (operand1 expression state) (operand2 expression state))
+      'true
       'false))
 
-; function that implements != expression but returns booleans in string form
-(define (not-equals expression state)
-    (if (eq? (operand1 expression state) (operand2 expression state)) 'false
-      'true))
+(define (cond-eq  expression state) (build-condition expression state equal?))
+(define (cond-neq expression state) (build-condition expression state not-equal?))
+(define (cond-gt  expression state) (build-condition expression state >))
+(define (cond-lt  expression state) (build-condition expression state <))
+(define (cond-geq expression state) (build-condition expression state >=))
+(define (cond-leq expression state) (build-condition expression state <=))
 
-; function that implements > expression but returns booleans in string form
-(define (greater-than expression state)
-    (if (> (operand1 expression state) (operand2 expression state)) 'true
-      'false))
+; boolean not using 'true/'false atoms
+; errors on operand that isn't a boolean atom
+(define (bool-not expression state)
+  (cond
+    [(eq? (operand1 expression state) 'true) 'false]
+    [(eq? (operand1 expression state) 'false) 'true]
+    [else (error "Inversion can only be applied to booleans")]))
 
-; function that implements < expression but returns booleans in string form
-(define (less-than expression state)
-    (if (< (operand1 expression state) (operand2 expression state)) 'true
-      'false))
+; boolean and using 'true/'false atoms with explicit short circuiting
+; errors on operands that aren't boolean atoms
+(define (bool-and expression state)
+  (cond
+    [(eq?        (operand1 expression state) 'false)  'false]
+    [(not-equal? (operand1 expression state) 'true) (error (~a "And can only be applied to booleans, got " (operand1 expression state)))]
+    [(eq?        (operand2 expression state) 'false)  'false]
+    [(not-equal? (operand2 expression state) 'true) (error (~a "And can only be applied to booleans, got " (operand2 expression state)))]
+    [else 'true]))
 
-; function that implements >= expression but returns booleans in string form
-(define (greater-than-equals expression state)
-    (if (>= (operand1 expression state) (operand2 expression state)) 'true
-      'false))
+; boolean and using 'true/'false atoms with explicit short circuiting
+; errors on operands that aren't boolean atoms
+(define (bool-or expression state)
+  (cond
+    [(eq?        (operand1 expression state) 'true)  'true]
+    [(not-equal? (operand1 expression state) 'false) (error (~a "Or can only be applied to booleans, got " (operand1 expression state)))]
+    [(eq?        (operand2 expression state) 'true)  'true]
+    [(not-equal? (operand2 expression state) 'false) (error (~a "Or can only be applied to booleans, got " (operand2 expression state)))]
+    [else 'false]))
 
-; function that implements <= expression but returns booleans in string form
-(define (less-than-equals expression state)
-    (if (<= (operand1 expression state) (operand2 expression state)) 'true
-      'false))
-
-; function that implements ! expression but returns booleans in string form
-(define (opposite expression state)
-    (cond
-      ((eq? (operand1 expression state) 'true) 'false)
-      ((eq? (operand1 expression state) 'false) 'true)
-      (else (error "must input boolean value"))))
-
-; version of and function with explicit short circuiting
-(define (short-circuit-and expression state)
-    (cond
-      [(eq? 'false (operand1 expression state))  'false]
-      [(eq? 'false (operand2 expression state)) 'false]
-      [else 'true]))
-
-; version of or function with explicit short circuiting
-(define (short-circuit-or expression state)
-    (cond
-      [(eq? 'true (operand1 expression state))  'true]
-      [(eq? 'true (operand2 expression state)) 'true]
-      [else 'false]))
-
-; function that returns if the boolean value is in string form ('true or 'false)
-(define (boolean-type? expression)
+; return true if expression is a boolean atom ('true or 'false)
+(define (boolean-literal? expression)
   (or (eq? expression 'true) (eq? expression 'false)))
 
 ; ====================================
-;abstractions
-(define operator car)
-(define first-operand cadr)
-(define second-operand caddr)
-(define third-element-null-check cddr)
+; abstractions
 (define (operand1 expression state)
-  (value-generic (first-operand expression) state))
-
+  (value-generic (first-operand-literal expression) state))
 (define (operand2 expression state)
-  (value-generic (second-operand expression) state))
+  (value-generic (second-operand-literal expression) state))
+(define (has-second-operand? expression) (not-null? (cddr expression)))
+
+(define operator car)
+(define first-operand-literal cadr)
+(define second-operand-literal caddr)
