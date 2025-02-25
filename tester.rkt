@@ -5,7 +5,7 @@
 
 (require html-parsing)
 
-(provide (all-defined-out))
+(provide test-src test-html)
 
 (define (test-src)
   (map
