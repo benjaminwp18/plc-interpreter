@@ -8,17 +8,13 @@
 (provide test-src test-html)
 
 (define (test-src)
-  (map
-   (lambda (str) (display-test str (parser str)))
-   (list-files "tests/src")))
+  (for ([filename (list-files "tests/src")])
+    (display-test filename (parser filename))))
 
 (define (test-html)
-  (map
-   (lambda (filename)
-     (map
-      (lambda (str) (display-test str (parse-str str)))
-      (parse-pres filename)))
-   (list-files "tests/html")))
+  (for ([filename (list-files "tests/html")])
+    (for ([str (parse-pres filename)])
+      (display-test str (parse-str str)))))
 
 (define (display-test str parsetree)
   (display (~a "======\n" str "\n---\nReturn value: "
