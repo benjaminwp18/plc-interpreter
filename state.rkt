@@ -1,8 +1,8 @@
 #lang racket
 
-(provide interpret)
+(provide interpret interpret-tree)
 
-(require "simpleParser.rkt")
+(require "parser/simpleParser.rkt")
 (require "binding.rkt")
 (require "value.rkt")
 (require "common.rkt")
