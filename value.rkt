@@ -40,7 +40,7 @@
     [(not (pair? expression)) (error (~a expression " has not been declared"))]
     [(in-list? (operator expression) '(+ - * / %)) (value-int expression state)]
     [(in-list? (operator expression) '(== != > < <= >= && || !)) (value-boolean expression state)]
-    [else (error 'bad-op "Invalid Operator")]))
+    [else (error (~a "Invalid operator: " (operator expression)))]))
 
 ; ====================================
 ; helper functions
