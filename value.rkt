@@ -13,7 +13,7 @@
     [(eq? '* (operator expression)) (*         (operand1 expression state) (operand2 expression state))]
     [(eq? '/ (operator expression)) (quotient  (operand1 expression state) (operand2 expression state))]
     [(eq? '% (operator expression)) (remainder (operand1 expression state) (operand2 expression state))]
-    [else (error ' bad-op "Invalid Operator")]))
+    [else (error (~a "Invalid integer operator: " (operator expression)))]))
 
 ; value-boolean is a function that handles ==, !=, >, call/cc  <, <=, >=, &&, ||, !
 (define (value-boolean expression state)
@@ -28,7 +28,7 @@
     [(eq? '&& (operator expression)) (bool-and expression state)]
     [(eq? '|| (operator expression)) (bool-or  expression state)]
     [(eq? '!  (operator expression)) (bool-not expression state)]
-    [else (error ' bad-op "Invalid Operator")]))
+    [else (error (~a "Invalid boolean operator: " (operator expression)))]))
 
 ; value-generic is a function to determine if an expression needs to be handled by value-boolean or value-int
 (define (value-generic expression state)
@@ -40,7 +40,7 @@
     [(not (pair? expression)) (error (~a expression " has not been declared"))]
     [(in-list? (operator expression) '(+ - * / %)) (value-int expression state)]
     [(in-list? (operator expression) '(== != > < <= >= && || !)) (value-boolean expression state)]
-    [else (error ' bad-op "Invalid Operator")]))
+    [else (error 'bad-op "Invalid Operator")]))
 
 ; ====================================
 ; helper functions
