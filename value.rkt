@@ -1,6 +1,6 @@
 #lang racket
 
-(provide (all-defined-out))
+(provide value-generic)
 
 (require "binding.rkt")
 
@@ -28,37 +28,87 @@
 ; value-boolean is a function that handles ==, !=, >, <, <=, >=, &&, ||, !
 (define (value-boolean expression state)
     (cond
-      [(boolean-type? expression) (boolean-value expression)]
-      [(eq? '== (operator expression)) (eq?         (value-generic (first-operand expression) state) (value-generic (second-operand expression) state))]
-      [(eq? '!= (operator expression)) (not (eq?    (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)))]
-      [(eq? '>  (operator expression)) (>           (value-generic (first-operand expression) state) (value-generic (second-operand expression) state))]
-      [(eq? '<  (operator expression)) (<           (value-generic (first-operand expression) state) (value-generic (second-operand expression) state))]
-      [(eq? '<= (operator expression)) (<=          (value-generic (first-operand expression) state) (value-generic (second-operand expression) state))]
-      [(eq? '>= (operator expression)) (>=          (value-generic (first-operand expression) state) (value-generic (second-operand expression) state))]
+      [(boolean-type? expression) expression]
+      [(eq? '== (operator expression)) (equals expression state)]
+      [(eq? '!= (operator expression)) (not-equals expression state)]
+      [(eq? '>  (operator expression)) (greater-than expression state)]
+      [(eq? '<  (operator expression)) (less-than expression state)]
+      [(eq? '<= (operator expression)) (less-than-equals expression state)]
+      [(eq? '>= (operator expression)) (greater-than-equals expression state)]
       [(eq? '&& (operator expression)) (short-circuit-and expression state)]
       [(eq? '|| (operator expression)) (short-circuit-or  expression state)]
-      [(eq? '!  (operator expression)) (not         (value-generic (first-operand expression) state))]
+      [(eq? '!  (operator expression)) (opposite expression state)]
       [else (error ' bad-op "Invalid Operator")]))
+
+; function that implements = expression but returns booleans in string form
+(define (equals expression state)
+    (if (eq? (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)) 'true
+      'false))
+
+; function that implements != expression but returns booleans in string form
+(define (not-equals expression state)
+    (if (eq? (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)) 'false
+      'true))
+
+; function that implements > expression but returns booleans in string form
+(define (greater-than expression state)
+    (if (> (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)) 'true
+      'false))
+
+; function that implements < expression but returns booleans in string form
+(define (less-than expression state)
+    (if (< (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)) 'true
+      'false))
+
+; function that implements >= expression but returns booleans in string form
+(define (greater-than-equals expression state)
+    (if (>= (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)) 'true
+      'false))
+
+; function that implements <= expression but returns booleans in string form
+(define (less-than-equals expression state)
+    (if (<= (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)) 'true
+      'false))
+
+; function that implements ! expression but returns booleans in string form
+(define (opposite expression state)
+    (cond
+      ((eq? (value-generic (first-operand expression) state) 'true) 'false)
+      ((eq? (value-generic (first-operand expression) state) 'false) 'true)
+      (else (error "must input boolean value"))))
+
 
 ; version of and function with explicit short circuiting
 (define (short-circuit-and expression state)
     (cond
-      [(eq? #f (value-generic (first-operand expression) state))  #f]
-      [(eq? #f (value-generic (second-operand expression) state)) #f]
-      [else #t]))
+      [(eq? 'false (value-generic (first-operand expression) state))  'false]
+      [(eq? 'false (value-generic (second-operand expression) state)) 'false]
+      [else 'true]))
 
 ; version of or function with explicit short circuiting
 (define (short-circuit-or expression state)
     (cond
-      [(eq? #t (value-generic (first-operand expression) state))  #t]
-      [(eq? #t (value-generic (second-operand expression) state)) #t]
-      [else #f]))
+      [(eq? 'true (value-generic (first-operand expression) state))  'true]
+      [(eq? 'true (value-generic (second-operand expression) state)) 'true]
+      [else 'false]))
 
+; function that returns if the boolean value is in string form ('true or 'false)
 (define (boolean-type? expression)
   (or (eq? expression 'true) (eq? expression 'false)))
 
-(define (boolean-value expression)
-  (eq? expression 'true))
+; function that converts booleans from string form ('true/'false) to boolean form (#t/#f)
+(define (string-to-boolean expression)
+  (cond
+      ((eq? expression 'true) #t)
+      ((eq? expression 'false) #f)
+      (else (error "must input 'true or 'false"))))
+
+; function that converts booleans from boolean form (#t/#f) to string form ('true/'false)
+(define (boolean-to-string expression)
+  (cond
+      ((eq? expression #t) 'true)
+      ((eq? expression #f) 'false)
+      (else (error "must input #t or #f"))))
 
 ; value-generic is a function to determine if an expression needs to be handled by value-boolean or value-int
 (define (value-generic expression state)
