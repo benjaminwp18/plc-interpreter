@@ -9,20 +9,22 @@
 
 (define (test-src)
   (map
-   (lambda (str) (display (~a "Testing " str "...\n"
-                              (with-handlers ([exn:fail? (lambda (v) (~a v "\n"))])
-                                (interpret (parser str))) "\n")))
+   (lambda (str) (display-test str (parser str)))
    (list-files "tests/src")))
 
 (define (test-html)
   (map
    (lambda (filename)
      (map
-      (lambda (str) (display (~a "Testing " str "...\n"
-                                 (with-handlers ([exn:fail? (lambda (v) (~a v "\n"))])
-                                   (interpret (parse-str str))) "\n\n")))
+      (lambda (str) (display-test str (parse-str str)))
       (parse-pres filename)))
    (list-files "tests/html")))
+
+(define (display-test str parsetree)
+  (display (~a "======\n" str "\n---\nReturn value: "
+               (with-handlers ([exn:fail? (lambda (v) (~a v "\n"))])
+                 (interpret parsetree))
+               "\n======\n\n")))
 
 (define (parse-pres filename)
   (find-pres (html->xexp (open-input-file filename))))
@@ -42,7 +44,7 @@
     (parser "tests/temp.j")))
 
 (define (list-files dir)
-   (map
-    (lambda (path) (~a dir "/" (path->string path)))
-    (directory-list (~a dir "/"))))
+  (map
+   (lambda (path) (~a dir "/" (path->string path)))
+   (directory-list (~a dir "/"))))
 
