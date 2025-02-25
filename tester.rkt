@@ -23,7 +23,7 @@
 (define (display-test str parsetree)
   (display (~a "======\n" str "\n---\nReturn value: "
                (with-handlers ([exn:fail? (lambda (v) (~a v "\n"))])
-                 (interpret parsetree))
+                 (interpret-tree parsetree))
                "\n======\n\n")))
 
 (define (parse-pres filename)
