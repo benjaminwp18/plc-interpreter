@@ -6,7 +6,7 @@
 ; Error if binding does not exist
 (define (binding-lookup name state)
   (cond
-    [(stt-empty? state) (error (~a "Binding for " name " does not exist"))]
+    [(stt-empty? state) (error (~a name " has not been declared"))]
     [(eq? (stt-first-name state) name) (stt-first-val state)]
     [else (binding-lookup name (stt-cdr state))]))
 
@@ -27,7 +27,7 @@
 ; Error if binding does not exist
 (define (binding-set name value state)
   (cond
-    [(stt-empty? state) (error (~a "Binding for " name " does not exist"))]
+    [(stt-empty? state) (error (~a name " has not been declared"))]
     [(eq? (stt-first-name state) name) (stt-cons (list name value) (stt-cdr state))]
     [else (stt-cons (stt-car state) (binding-set name value (stt-cdr state)))]))
 
