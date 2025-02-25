@@ -47,8 +47,8 @@
 (define (state-if expr state)
     (cond
       [(eq? (value-generic (conditional-expr expr) state) 'true) (state-generic (then-expr expr) state)]
-      [(contains-else? expr)                         (state-generic (else-expr expr) state)]
-      [else                                          state]))
+      [(contains-else? expr) (state-generic (else-expr expr) state)]
+      [else state]))
 
 ; Returns state after a while statement
 (define (state-while expr state)
