@@ -2,6 +2,7 @@
 
 (provide value-generic)
 (require "binding.rkt")
+(require "common.rkt")
 
 ; value-int is a function that handles +, -, *, /, %, and the unary -
 (define (value-int expression state)
@@ -108,13 +109,6 @@
 ; function that returns if the boolean value is in string form ('true or 'false)
 (define (boolean-type? expression)
   (or (eq? expression 'true) (eq? expression 'false)))
-
-; in-list takes an atom and a list and returns true if the element is in the list and false if the element is not in the list
-(define (in-list? a lis)
-    (cond
-      [(null? lis)       #f]
-      [(eq? a (car lis)) #t]
-      [else             (in-list? a (cdr lis))]))
 
 ; ====================================
 ;abstractions
