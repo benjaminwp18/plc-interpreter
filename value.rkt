@@ -1,7 +1,6 @@
 #lang racket
 
 (provide value-generic)
-
 (require "binding.rkt")
 
 ; value-int is a function that handles +, -, *, /, %, and the unary -
@@ -14,16 +13,6 @@
      [(eq? '/ (operator expression)) (quotient  (operand1 expression state) (operand2 expression state))]
      [(eq? '% (operator expression)) (remainder (operand1 expression state) (operand2 expression state))]
      [else (error ' bad-op "Invalid Operator")]))
-
-; helper-minus is a helper function to make distinct operations for unary minus and subtraction. it checks if there is three elements in the list to perform subtraction, and does unary instead if there is only two elements
-(define (helper-minus expression state)
-    (if (helper-is-binary expression) (- 0 (operand1 expression state))
-        (-         (operand1 expression state) (operand2 expression state))))
-
-; helper-is-binary is a helper function to check if a list contains more than two elements
-(define (helper-is-binary expression)
-    (if (null? (third-element-null-check expression)) #t
-        #f))
 
 ; value-boolean is a function that handles ==, !=, >, <, <=, >=, &&, ||, !
 (define (value-boolean expression state)
@@ -39,6 +28,31 @@
       [(eq? '|| (operator expression)) (short-circuit-or  expression state)]
       [(eq? '!  (operator expression)) (opposite expression state)]
       [else (error ' bad-op "Invalid Operator")]))
+
+; value-generic is a function to determine if an expression needs to be handled by value-boolean or value-int
+(define (value-generic expression state)
+    (cond
+      [(number? expression) (value-int expression state)]
+      [(boolean-type? expression) (value-boolean expression state)]
+      [(eq? (binding-status expression state) binding-init) (binding-lookup expression state)]
+      [(eq? (binding-status expression state) binding-uninit) (error (~a expression " has not been assigned a value"))]
+      [(not (pair? expression)) (error (~a expression " has not been declared"))]
+      [(in-list? (operator expression) '(+ - * / %)) (value-int expression state)]
+      [(in-list? (operator expression) '(== != > < <= >= && || !)) (value-boolean expression state)]
+      [else (error ' bad-op "Invalid Operator")]))
+
+; ====================================
+; helper functions
+
+; helper-minus is a helper function to make distinct operations for unary minus and subtraction. it checks if there is three elements in the list to perform subtraction, and does unary instead if there is only two elements
+(define (helper-minus expression state)
+    (if (helper-is-binary expression) (- 0 (operand1 expression state))
+        (-         (operand1 expression state) (operand2 expression state))))
+
+; helper-is-binary is a helper function to check if a list contains more than two elements
+(define (helper-is-binary expression)
+    (if (null? (third-element-null-check expression)) #t
+        #f))
 
 ; function that implements = expression but returns booleans in string form
 (define (equals expression state)
@@ -77,7 +91,6 @@
       ((eq? (operand1 expression state) 'false) 'true)
       (else (error "must input boolean value"))))
 
-
 ; version of and function with explicit short circuiting
 (define (short-circuit-and expression state)
     (cond
@@ -110,17 +123,7 @@
       ((eq? expression #f) 'false)
       (else (error "must input #t or #f"))))
 
-; value-generic is a function to determine if an expression needs to be handled by value-boolean or value-int
-(define (value-generic expression state)
-    (cond
-      [(number? expression) (value-int expression state)]
-      [(boolean-type? expression) (value-boolean expression state)]
-      [(eq? (binding-status expression state) binding-init) (binding-lookup expression state)]
-      [(eq? (binding-status expression state) binding-uninit) (error (~a expression " has not been assigned a value"))]
-      [(not (pair? expression)) (error (~a expression " has not been declared"))]
-      [(in-list? (operator expression) '(+ - * / %)) (value-int expression state)]
-      [(in-list? (operator expression) '(== != > < <= >= && || !)) (value-boolean expression state)]
-      [else (error ' bad-op "Invalid Operator")]))
+
 
 ; in-list takes an atom and a list and returns true if the element is in the list and false if the element is not in the list
 (define (in-list? a lis)
@@ -129,6 +132,7 @@
       [(eq? a (car lis)) #t]
       [else             (in-list? a (cdr lis))]))
 
+; ====================================
 ;abstractions
 (define operator car)
 (define first-operand cadr)
