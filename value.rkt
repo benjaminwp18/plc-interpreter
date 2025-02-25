@@ -8,17 +8,17 @@
 (define (value-int expression state)
    (cond
      [(number? expression) expression]
-     [(eq? '+ (operator expression)) (+         (value-generic (first-operand expression) state) (value-generic (second-operand expression) state))]
+     [(eq? '+ (operator expression)) (+         (operand1 expression state) (operand2 expression state))]
      [(eq? '- (operator expression))            (helper-minus expression state)]
-     [(eq? '* (operator expression)) (*         (value-generic (first-operand expression) state) (value-generic (second-operand expression) state))]
-     [(eq? '/ (operator expression)) (quotient  (value-generic (first-operand expression) state) (value-generic (second-operand expression) state))]
-     [(eq? '% (operator expression)) (remainder (value-generic (first-operand expression) state) (value-generic (second-operand expression) state))]
+     [(eq? '* (operator expression)) (*         (operand1 expression state) (operand2 expression state))]
+     [(eq? '/ (operator expression)) (quotient  (operand1 expression state) (operand2 expression state))]
+     [(eq? '% (operator expression)) (remainder (operand1 expression state) (operand2 expression state))]
      [else (error ' bad-op "Invalid Operator")]))
 
 ; helper-minus is a helper function to make distinct operations for unary minus and subtraction. it checks if there is three elements in the list to perform subtraction, and does unary instead if there is only two elements
 (define (helper-minus expression state)
-    (if (helper-is-binary expression) (- 0 (value-generic (first-operand expression) state))
-        (-         (value-generic (first-operand expression) state) (value-generic (second-operand expression) state))))
+    (if (helper-is-binary expression) (- 0 (operand1 expression state))
+        (-         (operand1 expression state) (operand2 expression state))))
 
 ; helper-is-binary is a helper function to check if a list contains more than two elements
 (define (helper-is-binary expression)
@@ -42,54 +42,54 @@
 
 ; function that implements = expression but returns booleans in string form
 (define (equals expression state)
-    (if (eq? (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)) 'true
+    (if (eq? (operand1 expression state) (operand2 expression state)) 'true
       'false))
 
 ; function that implements != expression but returns booleans in string form
 (define (not-equals expression state)
-    (if (eq? (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)) 'false
+    (if (eq? (operand1 expression state) (operand2 expression state)) 'false
       'true))
 
 ; function that implements > expression but returns booleans in string form
 (define (greater-than expression state)
-    (if (> (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)) 'true
+    (if (> (operand1 expression state) (operand2 expression state)) 'true
       'false))
 
 ; function that implements < expression but returns booleans in string form
 (define (less-than expression state)
-    (if (< (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)) 'true
+    (if (< (operand1 expression state) (operand2 expression state)) 'true
       'false))
 
 ; function that implements >= expression but returns booleans in string form
 (define (greater-than-equals expression state)
-    (if (>= (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)) 'true
+    (if (>= (operand1 expression state) (operand2 expression state)) 'true
       'false))
 
 ; function that implements <= expression but returns booleans in string form
 (define (less-than-equals expression state)
-    (if (<= (value-generic (first-operand expression) state) (value-generic (second-operand expression) state)) 'true
+    (if (<= (operand1 expression state) (operand2 expression state)) 'true
       'false))
 
 ; function that implements ! expression but returns booleans in string form
 (define (opposite expression state)
     (cond
-      ((eq? (value-generic (first-operand expression) state) 'true) 'false)
-      ((eq? (value-generic (first-operand expression) state) 'false) 'true)
+      ((eq? (operand1 expression state) 'true) 'false)
+      ((eq? (operand1 expression state) 'false) 'true)
       (else (error "must input boolean value"))))
 
 
 ; version of and function with explicit short circuiting
 (define (short-circuit-and expression state)
     (cond
-      [(eq? 'false (value-generic (first-operand expression) state))  'false]
-      [(eq? 'false (value-generic (second-operand expression) state)) 'false]
+      [(eq? 'false (operand1 expression state))  'false]
+      [(eq? 'false (operand2 expression state)) 'false]
       [else 'true]))
 
 ; version of or function with explicit short circuiting
 (define (short-circuit-or expression state)
     (cond
-      [(eq? 'true (value-generic (first-operand expression) state))  'true]
-      [(eq? 'true (value-generic (second-operand expression) state)) 'true]
+      [(eq? 'true (operand1 expression state))  'true]
+      [(eq? 'true (operand2 expression state)) 'true]
       [else 'false]))
 
 ; function that returns if the boolean value is in string form ('true or 'false)
@@ -134,3 +134,8 @@
 (define first-operand cadr)
 (define second-operand caddr)
 (define third-element-null-check cddr)
+(define (operand1 expression state)
+  (value-generic (first-operand expression) state))
+
+(define (operand2 expression state)
+  (value-generic (second-operand expression) state))
