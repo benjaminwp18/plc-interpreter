@@ -28,7 +28,7 @@
 ; value-boolean is a function that handles ==, !=, >, <, <=, >=, &&, ||, !
 (define (value-boolean expression state)
     (cond
-      [(boolean? expression) (boolean-to-string expression)]
+      [(boolean-type? expression) expression]
       [(eq? '== (operator expression)) (equals expression state)]
       [(eq? '!= (operator expression)) (not-equals expression state)]
       [(eq? '>  (operator expression)) (greater-than expression state)]
@@ -114,7 +114,7 @@
 (define (value-generic expression state)
     (cond
       [(number? expression) (value-int expression state)]
-      [(boolean-type? expression) (value-boolean (string-to-boolean expression) state)]
+      [(boolean-type? expression) (value-boolean expression state)]
       [(eq? (binding-status expression state) binding-init) (binding-lookup expression state)]
       [(eq? (binding-status expression state) binding-uninit) (error (~a expression " has not been assigned a value"))]
       [(not (pair? expression)) (error (~a expression " has not been declared"))]
