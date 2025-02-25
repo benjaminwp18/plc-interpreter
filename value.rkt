@@ -109,22 +109,6 @@
 (define (boolean-type? expression)
   (or (eq? expression 'true) (eq? expression 'false)))
 
-; function that converts booleans from string form ('true/'false) to boolean form (#t/#f)
-(define (string-to-boolean expression)
-  (cond
-      ((eq? expression 'true) #t)
-      ((eq? expression 'false) #f)
-      (else (error "must input 'true or 'false"))))
-
-; function that converts booleans from boolean form (#t/#f) to string form ('true/'false)
-(define (boolean-to-string expression)
-  (cond
-      ((eq? expression #t) 'true)
-      ((eq? expression #f) 'false)
-      (else (error "must input #t or #f"))))
-
-
-
 ; in-list takes an atom and a list and returns true if the element is in the list and false if the element is not in the list
 (define (in-list? a lis)
     (cond
