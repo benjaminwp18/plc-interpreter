@@ -4,93 +4,115 @@
 (require "binding.rkt")
 (require "common.rkt")
 
-; value-int is a function that handles +, -, *, /, %, and the unary -
-(define (value-int expression state)
-  (cond
-    [(number? expression) expression]
-    [(eq? '+ (operator expression)) (+         (operand1 expression state) (operand2 expression state))]
-    [(eq? '- (operator expression)) (minus-or-negative expression state)]
-    [(eq? '* (operator expression)) (*         (operand1 expression state) (operand2 expression state))]
-    [(eq? '/ (operator expression)) (quotient  (operand1 expression state) (operand2 expression state))]
-    [(eq? '% (operator expression)) (remainder (operand1 expression state) (operand2 expression state))]
-    [else (error (~a "Invalid integer operator: " (operator expression)))]))
+(define (value-binary-operator expression state)
+  (let ([op (operator expression)]
+        [op1 (operand1 expression state)]
+        [op2 (operand2 expression state)])
+    (cond
+      [(eq? '+  op) (op-plus   op1 op2)]
+      [(eq? '-  op) (op-minus  op1 op2)]
+      [(eq? '*  op) (op-times  op1 op2)]
+      [(eq? '/  op) (op-divide op1 op2)]
+      [(eq? '%  op) (op-modulo op1 op2)]
+      [(eq? '== op) (cond-eq   op1 op2)]
+      [(eq? '!= op) (cond-neq  op1 op2)]
+      [(eq? '>  op) (cond-gt   op1 op2)]
+      [(eq? '<  op) (cond-lt   op1 op2)]
+      [(eq? '<= op) (cond-leq  op1 op2)]
+      [(eq? '>= op) (cond-geq  op1 op2)]
+      [(eq? '&& op) (bool-and  op1 op2)]
+      [(eq? '|| op) (bool-or   op1 op2)]
+      [else (error (~a "Invalid binary operator: " op))])))
 
-; value-boolean is a function that handles ==, !=, >, call/cc  <, <=, >=, &&, ||, !
-(define (value-boolean expression state)
-  (cond
-    [(boolean-literal? expression) expression]
-    [(eq? '== (operator expression)) (cond-eq expression state)]
-    [(eq? '!= (operator expression)) (cond-neq expression state)]
-    [(eq? '>  (operator expression)) (cond-gt expression state)]
-    [(eq? '<  (operator expression)) (cond-lt expression state)]
-    [(eq? '<= (operator expression)) (cond-leq expression state)]
-    [(eq? '>= (operator expression)) (cond-geq expression state)]
-    [(eq? '&& (operator expression)) (bool-and expression state)]
-    [(eq? '|| (operator expression)) (bool-or  expression state)]
-    [(eq? '!  (operator expression)) (bool-not expression state)]
-    [else (error (~a "Invalid boolean operator: " (operator expression)))]))
+(define (value-unary-operator expression state)
+  (let ([op (operator expression)]
+        [op1 (operand1 expression state)])
+    (cond
+      [(eq? '- op)  (op-unary-minus op1)]
+      [(eq? '! op)  (bool-not       op1)]
+      [else (error (~a "Invalid unary operator: " op))])))
 
 ; value-generic is a function to determine if an expression needs to be handled by value-boolean or value-int
 (define (value-generic expression state)
   (cond
-    [(number? expression) (value-int expression state)]
-    [(boolean-literal? expression) (value-boolean expression state)]
+    [(number? expression) expression]
+    [(boolean-literal? expression) expression]
     [(eq? (binding-status expression state) binding-init) (binding-lookup expression state)]
     [(eq? (binding-status expression state) binding-uninit) (error (~a expression " has not been assigned a value"))]
     [(not (pair? expression)) (error (~a expression " has not been declared"))]
-    [(in-list? (operator expression) '(+ - * / %)) (value-int expression state)]
-    [(in-list? (operator expression) '(== != > < <= >= && || !)) (value-boolean expression state)]
+    [(has-second-operand? expression) (value-binary-operator expression state)]
+    [(has-first-operand? expression) (value-unary-operator expression state)]
     [else (error (~a "Invalid operator: " (operator expression)))]))
 
 ; ====================================
 ; helper functions
 
-; if expression has 2 operands: return operand 1 - operand 2
-; else: return negative operand1
-(define (minus-or-negative expression state)
-  (if (has-second-operand? expression)
-      (- (operand1 expression state) (operand2 expression state))
-      (- 0 (operand1 expression state))))
+(define (typesafe-unary-op racket-op op-atom predicate predicate-atom)
+  (lambda (op1)
+    (cond
+      [(not (predicate op1)) (error (~a "Invalid operand of operator " op-atom ": expected " predicate-atom ", got " op1))]
+      [else (racket-op op1)])))
 
-; helper to convert Racket boolean conditional racket-op to 'true/'false atom conditional
-(define (build-condition expression state racket-op)
-  (if (racket-op (operand1 expression state) (operand2 expression state))
-      'true
-      'false))
+(define (typesafe-binary-op racket-op op-atom predicate predicate-atom)
+  (lambda (op1 op2)
+    (cond
+      [(not (predicate op1)) (error (~a "Invalid left hand side of operator " op-atom ": expected " predicate-atom ", got " op1))]
+      [(not (predicate op2)) (error (~a "Invalid right hand side of operator " op-atom ": expected " predicate-atom ", got " op2))]
+      [else (racket-op op1 op2)])))
 
-(define (cond-eq  expression state) (build-condition expression state equal?))
-(define (cond-neq expression state) (build-condition expression state not-equal?))
-(define (cond-gt  expression state) (build-condition expression state >))
-(define (cond-lt  expression state) (build-condition expression state <))
-(define (cond-geq expression state) (build-condition expression state >=))
-(define (cond-leq expression state) (build-condition expression state <=))
+(define (typesafe-binary-int-op racket-op op-atom)
+  (typesafe-binary-op racket-op op-atom integer? 'integer))
+
+(define (typesafe-unary-int-op racket-op op-atom)
+  (typesafe-unary-op racket-op op-atom integer? 'integer))
+
+(define (build-condition racket-op)
+  (lambda (op1 op2)
+    (if (racket-op op1 op2)
+        'true
+        'false)))
+
+(define cond-eq  (build-condition equal?))
+(define cond-neq (build-condition not-equal?))
+(define cond-gt  (build-condition (typesafe-binary-int-op > '>)))
+(define cond-lt  (build-condition (typesafe-binary-int-op < '<)))
+(define cond-geq (build-condition (typesafe-binary-int-op >= '>=)))
+(define cond-leq (build-condition (typesafe-binary-int-op <= '<=)))
+
+(define op-plus   (typesafe-binary-int-op + '+))
+(define op-minus  (typesafe-binary-int-op - '-))
+(define op-times  (typesafe-binary-int-op * '*))
+(define op-divide (typesafe-binary-int-op quotient '/))
+(define op-modulo (typesafe-binary-int-op remainder '%))
+
+(define op-unary-minus (typesafe-unary-int-op (lambda (v) (- 0 v)) "unary -"))
 
 ; boolean not using 'true/'false atoms
 ; errors on operand that isn't a boolean atom
-(define (bool-not expression state)
+(define (bool-not op1)
   (cond
-    [(eq? (operand1 expression state) 'true) 'false]
-    [(eq? (operand1 expression state) 'false) 'true]
+    [(eq? op1 'true) 'false]
+    [(eq? op1 'false) 'true]
     [else (error "Inversion can only be applied to booleans")]))
 
 ; boolean and using 'true/'false atoms with explicit short circuiting
 ; errors on operands that aren't boolean atoms
-(define (bool-and expression state)
+(define (bool-and op1 op2)
   (cond
-    [(eq?        (operand1 expression state) 'false)  'false]
-    [(not-equal? (operand1 expression state) 'true) (error (~a "And can only be applied to booleans, got " (operand1 expression state)))]
-    [(eq?        (operand2 expression state) 'false)  'false]
-    [(not-equal? (operand2 expression state) 'true) (error (~a "And can only be applied to booleans, got " (operand2 expression state)))]
+    [(eq?        op1 'false)  'false]
+    [(not-equal? op1 'true) (error (~a "And can only be applied to booleans, got " op1))]
+    [(eq?        op2 'false)  'false]
+    [(not-equal? op2 'true) (error (~a "And can only be applied to booleans, got " op2))]
     [else 'true]))
 
 ; boolean and using 'true/'false atoms with explicit short circuiting
 ; errors on operands that aren't boolean atoms
-(define (bool-or expression state)
+(define (bool-or op1 op2)
   (cond
-    [(eq?        (operand1 expression state) 'true)  'true]
-    [(not-equal? (operand1 expression state) 'false) (error (~a "Or can only be applied to booleans, got " (operand1 expression state)))]
-    [(eq?        (operand2 expression state) 'true)  'true]
-    [(not-equal? (operand2 expression state) 'false) (error (~a "Or can only be applied to booleans, got " (operand2 expression state)))]
+    [(eq?        op1 'true)  'true]
+    [(not-equal? op1 'false) (error (~a "Or can only be applied to booleans, got " op1))]
+    [(eq?        op2 'true)  'true]
+    [(not-equal? op2 'false) (error (~a "Or can only be applied to booleans, got " op2))]
     [else 'false]))
 
 ; return true if expression is a boolean atom ('true or 'false)
@@ -104,6 +126,7 @@
 (define (operand2 expression state)
   (value-generic (second-operand-literal expression) state))
 (define (has-second-operand? expression) (not-null? (cddr expression)))
+(define (has-first-operand? expression) (not-null? (cdr expression)))
 
 (define operator car)
 (define first-operand-literal cadr)
