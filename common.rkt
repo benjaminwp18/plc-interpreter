@@ -1,5 +1,11 @@
 #lang racket
 
+;;;; ***************************************************
+;;;; Kyle Kaufman, Benjamin Poulin, Kasey Wei
+;;;; CSDS 345 Spring 2025
+;;;; Group Project 1: Simple Language Interpreter
+;;;; ***************************************************
+
 (provide not-null? in-list? not-equal?)
 
 ; returns true if a is not null; false otherwise
