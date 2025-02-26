@@ -1,6 +1,7 @@
 #lang racket
 
-(provide binding-lookup binding-status binding-set binding-create binding-unbound binding-uninit binding-init empty-stt stt-empty?)
+(provide binding-lookup binding-status binding-set binding-create
+         binding-unbound binding-uninit binding-init empty-stt stt-empty?)
 
 ; Return bound value of name in state
 ; Error if binding does not exist

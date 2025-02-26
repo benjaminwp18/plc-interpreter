@@ -1,11 +1,7 @@
 #lang racket
 
+(require "parser/simpleParser.rkt" "binding.rkt" "value.rkt" "common.rkt")
 (provide interpret interpret-tree)
-
-(require "parser/simpleParser.rkt")
-(require "binding.rkt")
-(require "value.rkt")
-(require "common.rkt")
 
 ; Takes a filename, calls parser with the filename, and returns the proper value
 (define (interpret filename)

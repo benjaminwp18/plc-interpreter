@@ -1,11 +1,8 @@
 #lang racket
 
-(require "state.rkt")
-(require "parser/simpleParser.rkt")
-
+(require "state.rkt" "parser/simpleParser.rkt")
 (require html-parsing)
-
-(provide test-src test-html)
+(provide test-src test-html parse-str)
 
 ; Test all code files in the tests/src directory
 (define (test-src)

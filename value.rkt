@@ -1,8 +1,7 @@
 #lang racket
 
+(require "binding.rkt" "common.rkt")
 (provide value-generic)
-(require "binding.rkt")
-(require "common.rkt")
 
 (define (value-binary-operator expression state)
   (let ([op (operator expression)]
