@@ -3,6 +3,7 @@
 (require "binding.rkt" "common.rkt")
 (provide value-generic)
 
+; get value of expression, assuming expression uses a binary operator
 (define (value-binary-operator expression state)
   (let ([op (operator expression)]
         [op1 (operand1 expression state)]
@@ -23,6 +24,7 @@
       [(eq? '|| op) (bool-or   op1 op2)]
       [else (error (~a "Invalid binary operator: " op))])))
 
+; get value of expression, assuming expression uses a unary operator
 (define (value-unary-operator expression state)
   (let ([op (operator expression)]
         [op1 (operand1 expression state)])
@@ -31,7 +33,7 @@
       [(eq? '! op)  (bool-not       op1)]
       [else (error (~a "Invalid unary operator: " op))])))
 
-; value-generic is a function to determine if an expression needs to be handled by value-boolean or value-int
+; get the value of expression, regardless of type or operator aryness
 (define (value-generic expression state)
   (cond
     [(number? expression) expression]
@@ -44,32 +46,7 @@
     [else (error (~a "Invalid operator: " (operator expression)))]))
 
 ; ====================================
-; helper functions
-
-(define (typesafe-unary-op racket-op op-atom predicate predicate-atom)
-  (lambda (op1)
-    (cond
-      [(not (predicate op1)) (error (~a "Invalid operand of operator " op-atom ": expected " predicate-atom ", got " op1))]
-      [else (racket-op op1)])))
-
-(define (typesafe-binary-op racket-op op-atom predicate predicate-atom)
-  (lambda (op1 op2)
-    (cond
-      [(not (predicate op1)) (error (~a "Invalid left hand side of operator " op-atom ": expected " predicate-atom ", got " op1))]
-      [(not (predicate op2)) (error (~a "Invalid right hand side of operator " op-atom ": expected " predicate-atom ", got " op2))]
-      [else (racket-op op1 op2)])))
-
-(define (typesafe-binary-int-op racket-op op-atom)
-  (typesafe-binary-op racket-op op-atom integer? 'integer))
-
-(define (typesafe-unary-int-op racket-op op-atom)
-  (typesafe-unary-op racket-op op-atom integer? 'integer))
-
-(define (build-condition racket-op)
-  (lambda (op1 op2)
-    (if (racket-op op1 op2)
-        'true
-        'false)))
+; Operations
 
 (define cond-eq  (build-condition equal?))
 (define cond-neq (build-condition not-equal?))
@@ -114,16 +91,49 @@
     [(not-equal? op2 'false) (error (~a "Or can only be applied to booleans, got " op2))]
     [else 'false]))
 
-; return true if expression is a boolean atom ('true or 'false)
-(define (boolean-literal? expression)
-  (or (eq? expression 'true) (eq? expression 'false)))
+; Create binary boolean condition function that returns atom 'true/'false from racket function that
+;  returns #t/#f
+(define (build-condition racket-op)
+  (lambda (op1 op2)
+    (if (racket-op op1 op2)
+        'true
+        'false)))
+
+; Create function that runs racket-op on two inputs but errors if either input is not an integer
+; op-atom is an atom that describes the operation for use in error printing
+(define (typesafe-binary-int-op racket-op op-atom)
+  (typesafe-binary-op racket-op op-atom integer? 'integer))
+
+; Create function that runs racket-op on one input but errors if the input is not an integer
+; op-atom is an atom that describes the operation for use in error printing
+(define (typesafe-unary-int-op racket-op op-atom)
+  (typesafe-unary-op racket-op op-atom integer? 'integer))
+
+; Create function that runs racket-op on two inputs but errors if either input fails predicate
+; op-atom & predicate-atom are atoms that describe the operation & predicate for use in error printing
+(define (typesafe-binary-op racket-op op-atom predicate predicate-atom)
+  (lambda (op1 op2)
+    (cond
+      [(not (predicate op1)) (error (~a "Invalid left hand side of operator " op-atom ": expected " predicate-atom ", got " op1))]
+      [(not (predicate op2)) (error (~a "Invalid right hand side of operator " op-atom ": expected " predicate-atom ", got " op2))]
+      [else (racket-op op1 op2)])))
+
+; Create function that runs racket-op on one input but errors if the input fails predicate
+; op-atom & predicate-atom are atoms that describe the operation & predicate for use in error printing
+(define (typesafe-unary-op racket-op op-atom predicate predicate-atom)
+  (lambda (op1)
+    (cond
+      [(not (predicate op1)) (error (~a "Invalid operand of operator " op-atom ": expected " predicate-atom ", got " op1))]
+      [else (racket-op op1)])))
 
 ; ====================================
-; abstractions
-(define (operand1 expression state)
-  (value-generic (first-operand-literal expression) state))
-(define (operand2 expression state)
-  (value-generic (second-operand-literal expression) state))
+; Abstractions
+
+; return true if expression is a boolean atom ('true or 'false)
+(define (boolean-literal? expression) (or (eq? expression 'true) (eq? expression 'false)))
+
+(define (operand1 expression state) (value-generic (first-operand-literal expression) state))
+(define (operand2 expression state) (value-generic (second-operand-literal expression) state))
 (define (has-second-operand? expression) (not-null? (cddr expression)))
 (define (has-first-operand? expression) (not-null? (cdr expression)))
 
