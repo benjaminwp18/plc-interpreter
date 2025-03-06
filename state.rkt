@@ -1,5 +1,11 @@
 #lang racket
 
+;;;; ***************************************************
+;;;; Kyle Kaufman, Benjamin Poulin, Kasey Wei
+;;;; CSDS 345 Spring 2025
+;;;; Group Project 1: Simple Language Interpreter
+;;;; ***************************************************
+
 (require "parser/simpleParser.rkt" "binding.rkt" "value.rkt" "common.rkt")
 (provide interpret interpret-tree)
 
