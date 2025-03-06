@@ -6,76 +6,74 @@
 ;;;; Group Project 1: Simple Language Interpreter
 ;;;; ***************************************************
 
+(require "parser/simpleParser.rkt" "binding.rkt" "value.rkt" "common.rkt")
 (provide interpret interpret-tree)
-
-(require "parser/simpleParser.rkt")
-(require "binding.rkt")
-(require "value.rkt")
-(require "common.rkt")
 
 ; Takes a filename, calls parser with the filename, and returns the proper value
 (define (interpret filename)
-    (interpret-tree (parser filename)))
+  (interpret-tree (parser filename)))
 
 ; Takes a syntax tree in list format and returns its return value
 ; Error if tree contains syntax errors
 (define (interpret-tree tree)
-    (binding-lookup 'return (state-statement-list tree (binding-create 'return binding-uninit empty-stt))))
+  (binding-lookup 'return (state-statement-list tree (binding-create 'return binding-uninit empty-stt))))
 
 ; Recursively returns the state after a series of statement lists
 ; Returns early if the return value in the state is set
 (define (state-statement-list tree state)
-    (if (or (null? tree) (not-null? (binding-lookup 'return state)))
-        state
-        (state-statement-list (next-statements tree) (state-generic (first-statement tree) state))))
+  (if (or (null? tree) (not-null? (binding-lookup 'return state)))
+      state
+      (state-statement-list (next-statements tree) (state-generic (first-statement tree) state))))
 
 ; Wrapper for returning state from different statement types
 (define (state-generic expr state)
+  (let ([type (statement-type expr)]
+        [body (statement-body expr)])
     (cond
-      [(eq? (statement-type expr) 'var)    (state-declare (statement-body expr) state)]
-      [(eq? (statement-type expr) '=)      (state-assign  (statement-body expr) state)]
-      [(eq? (statement-type expr) 'if)     (state-if      (statement-body expr) state)]
-      [(eq? (statement-type expr) 'while)  (state-while   (statement-body expr) state)]
-      [(eq? (statement-type expr) 'return) (state-return  (statement-body expr) state)]))
+      [(eq? type 'var)    (state-declare body state)]
+      [(eq? type '=)      (state-assign  body state)]
+      [(eq? type 'if)     (state-if      body state)]
+      [(eq? type 'while)  (state-while   body state)]
+      [(eq? type 'return) (state-return  body state)])))
 
 ; Returns state after a declaration
 ; Declaration statements may or may not contain an initialization value
 (define (state-declare expr state)
-    (if (initializes? expr)
-        (binding-create (variable expr) (value-generic (value expr) state) state)
-        (binding-create (variable expr) binding-uninit state)))
+  (if (initializes? expr)
+      (binding-create (variable expr) (value-generic (value expr) state) state)
+      (binding-create (variable expr) binding-uninit state)))
 
 ; Returns state after an assignment
 (define (state-assign expr state)
-    (binding-set (variable expr) (value-generic (value expr) state) state))
+  (binding-set (variable expr) (value-generic (value expr) state) state))
 
 ; Returns state after an if statement
 (define (state-if expr state)
-    (cond
-      [(eq? (value-generic (conditional-expr expr) state) 'true) (state-generic (then-expr expr) state)]
-      [(contains-else? expr) (state-generic (else-expr expr) state)]
-      [else state]))
+  (cond
+    [(eq? (value-generic (conditional-expr expr) state) 'true) (state-generic (then-expr expr) state)]
+    [(contains-else? expr) (state-generic (else-expr expr) state)]
+    [else state]))
 
 ; Returns state after a while statement
 (define (state-while expr state)
-    (if (eq? 'false (value-generic (conditional-expr expr) state))
+  (if (eq? 'false (value-generic (conditional-expr expr) state))
       state
       (state-while expr (state-generic (body-expr expr) state))))
 
 ; Sets return value in state after a return statement
 (define (state-return expr state)
-    (binding-set 'return (value-generic (return-value expr) state) state))
+  (binding-set 'return (value-generic (return-value expr) state) state))
 
 ; ====================================
 ; Helper functions
 
 ; whether a declaration statement initializes the variable
 (define (initializes? expr)
-    (not-null? (value-pos expr)))
+  (not-null? (value-pos expr)))
 
 ; whether an if statement contains an "else" expression
 (define (contains-else? expr)
-    (not-null? (else-expr-pos expr)))
+  (not-null? (else-expr-pos expr)))
 
 ; ====================================
 ; Abstractions
