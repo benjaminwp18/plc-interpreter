@@ -46,26 +46,26 @@
       [(eq? type '=)         (state-assign  body state next)]
       [(eq? type 'if)        (state-if      body state next return break continue throw)]
       [(eq? type 'while)     (state-while   body state next return (lambda (s) (next s)) continue throw)]
-      [(eq? type 'return)    (return        (value-generic (return-value body) state))]
+      [(eq? type 'return)    (return        (value-generic (return-value body) state identity))]
       [(eq? type 'break)     (break         state)]
       [(eq? type 'continue)  (continue      state)]
-      [(eq? type 'throw)     (throw         (value-generic (thrown-value body) state) state)])))
+      [(eq? type 'throw)     (throw         (value-generic (thrown-value body) state) state identity)])))
 
 ; Returns state after a declaration
 ; Declaration statements may or may not contain an initialization value
 (define (state-declare expr state next)
   (if (initializes? expr)
-      (next (binding-create (variable expr) (value-generic (value expr) state) state))
+      (next (binding-create (variable expr) (value-generic (value expr) state) state identity))
       (next (binding-create (variable expr) binding-uninit state))))
 
 ; Returns state after an assignment
 (define (state-assign expr state next)
-  (next (binding-set (variable expr) (value-generic (value expr) state) state)))
+  (next (binding-set (variable expr) (value-generic (value expr) state identity) state)))
 
 ; Returns state after an if statement
 (define (state-if expr state next return break continue throw)
   (cond
-    [(eq? 'true (value-generic (conditional-expr expr) state))
+    [(eq? 'true (value-generic (conditional-expr expr) state identity))
      (state-generic (then-expr expr) state next return break continue throw)]
     [(contains-else? expr)
      (state-generic (else-expr expr) state next return break continue throw)]
@@ -73,7 +73,7 @@
 
 ; Returns state after a while statement
 (define (state-while expr state next return break continue throw)
-  (if (eq? 'false (value-generic (conditional-expr expr) state))
+  (if (eq? 'false (value-generic (conditional-expr expr) state identity))
       (next state)
       (state-generic (body-expr expr)
                      state
