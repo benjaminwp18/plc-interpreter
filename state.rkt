@@ -45,11 +45,11 @@
       [(eq? type 'var)       (state-declare body state next)]
       [(eq? type '=)         (state-assign  body state next)]
       [(eq? type 'if)        (state-if      body state next return break continue throw)]
-      [(eq? type 'while)     (state-while   body state next return (lambda (s) (next s)) continue throw)]
-      [(eq? type 'return)    (return        (value-generic (return-value body) state identity))]
+      [(eq? type 'while)     (state-while   body state next return next continue throw)]
+      [(eq? type 'return)    (value-generic (return-value body) state (lambda (v) (return v)))]
       [(eq? type 'break)     (break         state)]
       [(eq? type 'continue)  (continue      state)]
-      [(eq? type 'throw)     (throw         (value-generic (thrown-value body) state identity) state)])))
+      [(eq? type 'throw)     (value-generic (thrown-value body) state (lambda (v) (throw v state)))])))
 
 ; Returns state after a declaration
 ; Declaration statements may or may not contain an initialization value
