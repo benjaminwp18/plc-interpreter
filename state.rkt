@@ -11,15 +11,15 @@
 
 ; Takes a filename, calls parser with the filename, and returns the proper value
 (define (interpret filename)
-  (interpret-tree (parser filename) (lambda (v) v)))
+  (interpret-tree (parser filename)))
 
 ; Takes a syntax tree in list format and returns its return value
 ; Error if tree contains syntax errors
-(define (interpret-tree tree return)
+(define (interpret-tree tree)
   (state-statement-list tree
                         empty-stt
-                        (lambda (v) (return v))
-                        return
+                        (lambda (s) binding-uninit)
+                        (lambda (v) v)
                         (lambda (s) (error "Break"))
                         (lambda (s) (error "Continue"))
                         (lambda (e s) (error (~a "Error: " e)))))
