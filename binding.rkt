@@ -7,7 +7,8 @@
 ;;;; ***************************************************
 
 (provide binding-lookup binding-status binding-set binding-create
-         binding-unbound binding-uninit binding-init empty-stt lyr-empty?)
+         binding-unbound binding-uninit binding-init empty-stt lyr-empty? stt-empty?
+         binding-push-layer binding-pop-layer)
 
 (define (binding-push-layer state)
   (cons empty-lyr state))
@@ -44,22 +45,25 @@
 (define (binding-set name value state)
   (if (stt-empty? state)
       (error (~a name " has not been declared"))
-      (let ([result (lyr-set-binding name value (stt-first-lyr state))])
-        (if (equal? binding-unbound result)
-            (binding-set name value (stt-rest-lyrs state))
-            result))))
+      (let ([result-lyr (lyr-set-binding name value (stt-first-lyr state))])
+        (if (equal? binding-unbound result-lyr)
+            (stt-cons-lyr (stt-first-lyr state) (binding-set name value (stt-rest-lyrs state)))
+            (stt-cons-lyr result-lyr (stt-rest-lyrs state))))))
 
 (define (lyr-set-binding name value layer)
   (cond
     [(lyr-empty? layer) binding-unbound]
     [(equal? (lyr-first-name layer) name) (lyr-cons (list name value) (lyr-cdr layer))]
-    [else (lyr-cons (lyr-car layer) (lyr-set-binding name value (lyr-cdr layer)))]))
+    [else (let ([result (lyr-set-binding name value (lyr-cdr layer))])
+            (if (equal? binding-unbound result)
+                binding-unbound
+                (lyr-cons (lyr-car layer) result)))]))
 
 ; Return state with new binding (name, value)
 ; Error if binding already exists
 (define (binding-create name value state)
   (if (equal? (binding-status name state) binding-unbound)
-      (lyr-create-binding name value (stt-first-lyr state))
+      (stt-cons-lyr (lyr-create-binding name value (stt-first-lyr state)) (stt-rest-lyrs state))
       (error (~a "Binding for " name " already exists"))))
 
 (define (lyr-create-binding name value layer)
@@ -71,6 +75,7 @@
 
 (define stt-first-lyr car)
 (define stt-rest-lyrs cdr)
+(define stt-cons-lyr cons)
 
 (define empty-lyr '(() ()))
 (define empty-stt (list empty-lyr))
