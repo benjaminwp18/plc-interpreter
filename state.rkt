@@ -20,15 +20,15 @@
                         empty-stt
                         (lambda (s) binding-uninit)
                         identity
-                        (lambda (s) (error "Break"))
-                        (lambda (s) (error "Continue"))
+                        (lambda (s) (error "'break' called outside loop"))
+                        (lambda (s) (error "'continue' called outside loop"))
                         (lambda (e s) (error (~a "Error: " e)))))
 
 ; Recursively returns the state after a series of statement lists
 ; Returns early if the return value in the state is set
 (define (state-statement-list tree state next return break continue throw)
   (if (null? tree)
-      (return binding-uninit)
+      (next state)
       (state-generic (first-statement tree)
                      state
                      (lambda (s) (state-statement-list (next-statements tree) s next return break continue throw))
@@ -49,7 +49,13 @@
       [(eq? type 'return)    (value-generic (return-value body) state (lambda (v) (return v)))]
       [(eq? type 'break)     (break         state)]
       [(eq? type 'continue)  (continue      state)]
-      [(eq? type 'throw)     (value-generic (thrown-value body) state (lambda (v) (throw v state)))])))
+      [(eq? type 'throw)     (value-generic (thrown-value body) state (lambda (v) (throw v state)))]
+      [(eq? type 'begin)     (state-statement-list body (binding-push-layer state)
+                                                   (lambda (s) (next (binding-pop-layer s)))
+                                                   return
+                                                   (lambda (s) (break (binding-pop-layer s)))
+                                                   (lambda (s) (continue (binding-pop-layer s)))
+                                                   (lambda (s) (throw (binding-pop-layer s))))])))
 
 ; Returns state after a declaration
 ; Declaration statements may or may not contain an initialization value
