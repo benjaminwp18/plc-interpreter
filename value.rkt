@@ -11,8 +11,8 @@
 
 ; get value of expression, assuming expression uses a binary operator
 (define (value-binary-operator expression state return)
-  (value-generic (operand2 expression state return) state (lambda (op2)
-    (value-generic (operand1 expression state return) state (lambda (op1)
+  (value-generic (operand1 expression state return) state (lambda (op2)
+    (value-generic (operand2 expression state return) state (lambda (op1)
       (let ([op (operator expression)])
       (cond
         [(eq? '+  op) (return (op-plus   op1 op2))]
