@@ -11,33 +11,36 @@
 
 ; get value of expression, assuming expression uses a binary operator
 (define (value-binary-operator expression state return)
-  (value-generic (operand1 expression state return) state (lambda (op2)
-    (value-generic (operand2 expression state return) state (lambda (op1)
-      (let ([op (operator expression)])
-      (cond
-        [(eq? '+  op) (return (op-plus   op1 op2))]
-        [(eq? '-  op) (return (op-minus  op1 op2))]
-        [(eq? '*  op) (return (op-times  op1 op2))]
-        [(eq? '/  op) (return (op-divide op1 op2))]
-        [(eq? '%  op) (return (op-modulo op1 op2))]
-        [(eq? '== op) (return (cond-eq   op1 op2))]
-        [(eq? '!= op) (return (cond-neq  op1 op2))]
-        [(eq? '>  op) (return (cond-gt   op1 op2))]
-        [(eq? '<  op) (return (cond-lt   op1 op2))]
-        [(eq? '<= op) (return (cond-leq  op1 op2))]
-        [(eq? '>= op) (return (cond-geq  op1 op2))]
-        [(eq? '&& op) (return (bool-and  op1 op2))]
-        [(eq? '|| op) (return (bool-or   op1 op2))]
-        [else (error (~a "Invalid binary operator: " op))])))))))
+  (value-generic (operand1 expression state return) state
+                 (lambda (op2)
+                   (value-generic (operand2 expression state return) state
+                                  (lambda (op1)
+                                    (let ([op (operator expression)])
+                                      (cond
+                                        [(eq? '+  op) (return (op-plus   op1 op2))]
+                                        [(eq? '-  op) (return (op-minus  op1 op2))]
+                                        [(eq? '*  op) (return (op-times  op1 op2))]
+                                        [(eq? '/  op) (return (op-divide op1 op2))]
+                                        [(eq? '%  op) (return (op-modulo op1 op2))]
+                                        [(eq? '== op) (return (cond-eq   op1 op2))]
+                                        [(eq? '!= op) (return (cond-neq  op1 op2))]
+                                        [(eq? '>  op) (return (cond-gt   op1 op2))]
+                                        [(eq? '<  op) (return (cond-lt   op1 op2))]
+                                        [(eq? '<= op) (return (cond-leq  op1 op2))]
+                                        [(eq? '>= op) (return (cond-geq  op1 op2))]
+                                        [(eq? '&& op) (return (bool-and  op1 op2))]
+                                        [(eq? '|| op) (return (bool-or   op1 op2))]
+                                        [else (error (~a "Invalid binary operator: " op))])))))))
 
 ; get value of expression, assuming expression uses a unary operator
 (define (value-unary-operator expression state return)
-  (value-generic (operand1 expression state return) state (lambda (op1)
-    (let ([op (operator expression)])
-      (cond
-        [(eq? '- op)  (return (op-unary-minus op1))]
-        [(eq? '! op)  (return (bool-not       op1))]
-        [else (error (~a "Invalid unary operator: " op))])))))
+  (value-generic (operand1 expression state return) state
+                 (lambda (op1)
+                   (let ([op (operator expression)])
+                     (cond
+                       [(eq? '- op)  (return (op-unary-minus op1))]
+                       [(eq? '! op)  (return (bool-not       op1))]
+                       [else (error (~a "Invalid unary operator: " op))])))))
 
 ; get the value of expression, regardless of type or operator aryness
 (define (value-generic expression state return)
