@@ -26,7 +26,7 @@
       (let ([result (lyr-lookup-binding name (stt-first-lyr state))])
         (if (equal? binding-unbound result)
             (binding-lookup name (stt-rest-lyrs state))
-            result))))
+            (unbox result)))))
 
 ; Return the value of name in layer
 ; or binding-unbound if no binding for name exists in layer
@@ -60,7 +60,10 @@
 (define (lyr-set-binding name value layer)
   (cond
     [(lyr-empty? layer) binding-unbound]
-    [(equal? (lyr-first-name layer) name) (lyr-cons (list name value) (lyr-cdr layer))]
+    [(equal? (lyr-first-name layer) name)
+      (begin
+        (set-box! (lyr-first-val layer) value) 
+        (lyr-cons (list name value) (lyr-cdr layer)))]
     [else (let ([result (lyr-set-binding name value (lyr-cdr layer))])
             (if (equal? binding-unbound result)
                 binding-unbound
@@ -110,7 +113,8 @@
   (list
    (cdr (lyr-names layer))
    (cdr (lyr-vals layer))))
+
 (define (lyr-cons pair layer)
   (list
    (cons (binding-name pair) (lyr-names layer))
-   (cons (binding-val pair) (lyr-vals layer))))
+   (cons (box (binding-val pair)) (lyr-vals layer))))
