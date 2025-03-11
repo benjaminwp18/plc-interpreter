@@ -28,7 +28,7 @@
 ; Returns early if the return value in the state is set
 (define (state-statement-list tree state next return break continue throw)
   (if (null? tree)
-      (return binding-uninit)
+      (next state)
       (state-generic (first-statement tree)
                      state
                      (lambda (s) (state-statement-list (next-statements tree) s next return break continue throw))
@@ -49,7 +49,10 @@
       [(eq? type 'return)    (value-generic (return-value body) state (lambda (v) (return v)))]
       [(eq? type 'break)     (break         state)]
       [(eq? type 'continue)  (continue      state)]
-      [(eq? type 'throw)     (value-generic (thrown-value body) state (lambda (v) (throw v state)))])))
+      [(eq? type 'throw)     (value-generic (thrown-value body) state (lambda (v) (throw v state)))]
+      [(eq? type 'begin)     (state-statement-list body (binding-push-layer state)
+                                                   (lambda (s) (next (binding-pop-layer s)))
+                                                   return break continue throw)])))
 
 ; Returns state after a declaration
 ; Declaration statements may or may not contain an initialization value
