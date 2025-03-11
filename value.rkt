@@ -51,6 +51,8 @@
     [(has-first-operand? expression) (value-unary-operator expression state return)]
     [else (error (~a "Invalid operator: " (operator expression)))]))
 
+; ====================================
+; Operations
 
 ; Create binary boolean condition function that returns atom 'true/'false from racket function that
 ;  returns #t/#f
@@ -86,9 +88,6 @@
     (cond
       [(not (predicate op1)) (error (~a "Invalid operand of operator " op-atom ": expected " predicate-atom ", got " op1))]
       [else (racket-op op1)])))
-
-; ====================================
-; Operations
 
 (define cond-eq  (build-condition equal?))
 (define cond-neq (build-condition not-equal?))
