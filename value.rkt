@@ -10,45 +10,45 @@
 (provide value-generic)
 
 ; get value of expression, assuming expression uses a binary operator
-(define (value-binary-operator expression state)
+(define (value-binary-operator expression state return)
   (let ([op (operator expression)]
         [op1 (operand1 expression state)]
         [op2 (operand2 expression state)])
     (cond
-      [(eq? '+  op) (op-plus   op1 op2)]
-      [(eq? '-  op) (op-minus  op1 op2)]
-      [(eq? '*  op) (op-times  op1 op2)]
-      [(eq? '/  op) (op-divide op1 op2)]
-      [(eq? '%  op) (op-modulo op1 op2)]
-      [(eq? '== op) (cond-eq   op1 op2)]
-      [(eq? '!= op) (cond-neq  op1 op2)]
-      [(eq? '>  op) (cond-gt   op1 op2)]
-      [(eq? '<  op) (cond-lt   op1 op2)]
-      [(eq? '<= op) (cond-leq  op1 op2)]
-      [(eq? '>= op) (cond-geq  op1 op2)]
-      [(eq? '&& op) (bool-and  op1 op2)]
-      [(eq? '|| op) (bool-or   op1 op2)]
+      [(eq? '+  op) (return (op-plus   op1 op2))]
+      [(eq? '-  op) (return (op-minus  op1 op2))]
+      [(eq? '*  op) (return (op-times  op1 op2))]
+      [(eq? '/  op) (return (op-divide op1 op2))]
+      [(eq? '%  op) (return (op-modulo op1 op2))]
+      [(eq? '== op) (return (cond-eq   op1 op2))]
+      [(eq? '!= op) (return (cond-neq  op1 op2))]
+      [(eq? '>  op) (return (cond-gt   op1 op2))]
+      [(eq? '<  op) (return (cond-lt   op1 op2))]
+      [(eq? '<= op) (return (cond-leq  op1 op2))]
+      [(eq? '>= op) (return (cond-geq  op1 op2))]
+      [(eq? '&& op) (return (bool-and  op1 op2))]
+      [(eq? '|| op) (return (bool-or   op1 op2))]
       [else (error (~a "Invalid binary operator: " op))])))
 
 ; get value of expression, assuming expression uses a unary operator
-(define (value-unary-operator expression state)
+(define (value-unary-operator expression state return)
   (let ([op (operator expression)]
         [op1 (operand1 expression state)])
     (cond
-      [(eq? '- op)  (op-unary-minus op1)]
-      [(eq? '! op)  (bool-not       op1)]
+      [(eq? '- op)  (return (op-unary-minus op1))]
+      [(eq? '! op)  (return (bool-not       op1))]
       [else (error (~a "Invalid unary operator: " op))])))
 
 ; get the value of expression, regardless of type or operator aryness
-(define (value-generic expression state)
+(define (value-generic expression state return)
   (cond
-    [(number? expression) expression]
-    [(boolean-literal? expression) expression]
-    [(eq? (binding-status expression state) binding-init) (binding-lookup expression state)]
+    [(number? expression) (return expression)]
+    [(boolean-literal? expression) (return expression)]
+    [(eq? (binding-status expression state) binding-init) (return (binding-lookup expression state))]
     [(eq? (binding-status expression state) binding-uninit) (error (~a expression " has not been assigned a value"))]
     [(not (pair? expression)) (error (~a expression " has not been declared"))]
-    [(has-second-operand? expression) (value-binary-operator expression state)]
-    [(has-first-operand? expression) (value-unary-operator expression state)]
+    [(has-second-operand? expression) (value-binary-operator expression state return)]
+    [(has-first-operand? expression) (value-unary-operator expression state return)]
     [else (error (~a "Invalid operator: " (operator expression)))]))
 
 ; ====================================
@@ -138,8 +138,8 @@
 ; return true if expression is a boolean atom ('true or 'false)
 (define (boolean-literal? expression) (or (eq? expression 'true) (eq? expression 'false)))
 
-(define (operand1 expression state) (value-generic (first-operand-literal expression) state))
-(define (operand2 expression state) (value-generic (second-operand-literal expression) state))
+(define (operand1 expression state return) (value-generic (first-operand-literal expression) state return))
+(define (operand2 expression state return) (value-generic (second-operand-literal expression) state return))
 (define (has-second-operand? expression) (not-null? (cddr expression)))
 (define (has-first-operand? expression) (not-null? (cdr expression)))
 
