@@ -24,8 +24,7 @@
                         (lambda (s) (error "'continue' called outside loop"))
                         (lambda (e s) (error (~a "Error: " e)))))
 
-; Recursively returns the state after a series of statement lists
-; Returns early if the return value in the state is set
+; Returns the return value after recursing through a series of statement lists
 (define (state-statement-list tree state next return break continue throw)
   (if (null? tree)
       (next state)
@@ -54,8 +53,9 @@
       [(eq? type 'catch)     (state-catch   body state next return break continue throw)]
       [(eq? type 'finally)   (state-finally body state next return break continue throw)]
       [(eq? type 'begin)     (state-block   body state next return break continue throw)]
-      [else                  (error "Invalid syntax")])))
+      [else                  (error (~a "Invalid syntax: " type))])))
 
+; Returns state after running a block of statements
 (define (state-block body state next return break continue throw)
   (state-statement-list body
                         (binding-push-layer state)
@@ -97,6 +97,7 @@
                      (lambda (s) (state-while expr s next return break continue throw))
                      throw)))
 
+; Returns state after a try block (may or may not contain a finally block)
 (define (state-try expr state next return break continue throw)
   (if (contains-finally? expr)
       (let ([finally-continuation (lambda (s) (state-generic (finally-block expr) s next return break continue throw))])
@@ -120,9 +121,11 @@
                                     continue
                                     throw)))))
 
+; Returns state after a catch block
 (define (state-catch expr state next return break continue throw)
   (state-block (catch-body expr) state next return break continue throw))
 
+; Returns state after a finally block
 (define (state-finally expr state next return break continue throw)
   (state-block (finally-body expr) state next return break continue throw))
 
@@ -134,10 +137,11 @@
 (define (initializes? expr)
   (not-null? (value-pos expr)))
 
-; whether an if statement contains an "else" expression
+; whether an if statement contains an else expression
 (define (contains-else? expr)
   (not-null? (else-expr-pos expr)))
 
+; whether a try block contains a finally block
 (define (contains-finally? expr)
   (not-null? (finally-block expr)))
 
