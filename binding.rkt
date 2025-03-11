@@ -7,11 +7,14 @@
 ;;;; ***************************************************
 
 (provide binding-lookup binding-status binding-set binding-create
-         binding-unbound binding-uninit binding-init empty-stt lyr-empty? stt-empty?
+         binding-unbound binding-uninit binding-init empty-stt stt-empty?
          binding-push-layer binding-pop-layer)
 
+; Return the state with an empty layer added
 (define (binding-push-layer state)
   (cons empty-lyr state))
+
+; Return the state with the first layer removed
 (define (binding-pop-layer state)
   (stt-rest-lyrs state))
 
@@ -25,6 +28,8 @@
             (binding-lookup name (stt-rest-lyrs state))
             result))))
 
+; Return the value of name in layer
+; or binding-unbound if no binding for name exists in layer
 (define (lyr-lookup-binding name layer)
   (cond
     [(lyr-empty? layer) binding-unbound]
@@ -50,6 +55,8 @@
             (stt-cons-lyr (stt-first-lyr state) (binding-set name value (stt-rest-lyrs state)))
             (stt-cons-lyr result-lyr (stt-rest-lyrs state))))))
 
+; Return this layer with the binding for name set to value
+; or binding-unbound if no binding for name exists in layer
 (define (lyr-set-binding name value layer)
   (cond
     [(lyr-empty? layer) binding-unbound]
@@ -66,6 +73,8 @@
       (stt-cons-lyr (lyr-create-binding name value (stt-first-lyr state)) (stt-rest-lyrs state))
       (error (~a "Binding for " name " already exists"))))
 
+; Return this layer with an empty binding created for name
+; Do not check for already existing bindings
 (define (lyr-create-binding name value layer)
   (lyr-cons (list name value) layer))
 
