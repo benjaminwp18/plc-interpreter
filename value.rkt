@@ -12,8 +12,8 @@
 ; get value of expression, assuming expression uses a binary operator
 (define (value-binary-operator expression state return)
   (let ([op (operator expression)]
-        [op1 (operand1 expression state)]
-        [op2 (operand2 expression state)])
+        [op1 (operand1 expression state return)]
+        [op2 (operand2 expression state return)])
     (cond
       [(eq? '+  op) (return (op-plus   op1 op2))]
       [(eq? '-  op) (return (op-minus  op1 op2))]
@@ -33,7 +33,7 @@
 ; get value of expression, assuming expression uses a unary operator
 (define (value-unary-operator expression state return)
   (let ([op (operator expression)]
-        [op1 (operand1 expression state)])
+        [op1 (operand1 expression state return)])
     (cond
       [(eq? '- op)  (return (op-unary-minus op1))]
       [(eq? '! op)  (return (bool-not       op1))]
@@ -50,6 +50,42 @@
     [(has-second-operand? expression) (value-binary-operator expression state return)]
     [(has-first-operand? expression) (value-unary-operator expression state return)]
     [else (error (~a "Invalid operator: " (operator expression)))]))
+
+
+; Create binary boolean condition function that returns atom 'true/'false from racket function that
+;  returns #t/#f
+(define (build-condition racket-op)
+  (lambda (op1 op2)
+    (if (racket-op op1 op2)
+        'true
+        'false)))
+
+; Create function that runs racket-op on two inputs but errors if either input is not an integer
+; op-atom is an atom that describes the operation for use in error printing
+(define (typesafe-binary-int-op racket-op op-atom)
+  (typesafe-binary-op racket-op op-atom integer? 'integer))
+
+; Create function that runs racket-op on one input but errors if the input is not an integer
+; op-atom is an atom that describes the operation for use in error printing
+(define (typesafe-unary-int-op racket-op op-atom)
+  (typesafe-unary-op racket-op op-atom integer? 'integer))
+
+; Create function that runs racket-op on two inputs but errors if either input fails predicate
+; op-atom & predicate-atom are atoms that describe the operation & predicate for use in error printing
+(define (typesafe-binary-op racket-op op-atom predicate predicate-atom)
+  (lambda (op1 op2)
+    (cond
+      [(not (predicate op1)) (error (~a "Invalid left hand side of operator " op-atom ": expected " predicate-atom ", got " op1))]
+      [(not (predicate op2)) (error (~a "Invalid right hand side of operator " op-atom ": expected " predicate-atom ", got " op2))]
+      [else (racket-op op1 op2)])))
+
+; Create function that runs racket-op on one input but errors if the input fails predicate
+; op-atom & predicate-atom are atoms that describe the operation & predicate for use in error printing
+(define (typesafe-unary-op racket-op op-atom predicate predicate-atom)
+  (lambda (op1)
+    (cond
+      [(not (predicate op1)) (error (~a "Invalid operand of operator " op-atom ": expected " predicate-atom ", got " op1))]
+      [else (racket-op op1)])))
 
 ; ====================================
 ; Operations
@@ -96,41 +132,6 @@
     [(eq?        op2 'true)  'true]
     [(not-equal? op2 'false) (error (~a "Or can only be applied to booleans, got " op2))]
     [else 'false]))
-
-; Create binary boolean condition function that returns atom 'true/'false from racket function that
-;  returns #t/#f
-(define (build-condition racket-op)
-  (lambda (op1 op2)
-    (if (racket-op op1 op2)
-        'true
-        'false)))
-
-; Create function that runs racket-op on two inputs but errors if either input is not an integer
-; op-atom is an atom that describes the operation for use in error printing
-(define (typesafe-binary-int-op racket-op op-atom)
-  (typesafe-binary-op racket-op op-atom integer? 'integer))
-
-; Create function that runs racket-op on one input but errors if the input is not an integer
-; op-atom is an atom that describes the operation for use in error printing
-(define (typesafe-unary-int-op racket-op op-atom)
-  (typesafe-unary-op racket-op op-atom integer? 'integer))
-
-; Create function that runs racket-op on two inputs but errors if either input fails predicate
-; op-atom & predicate-atom are atoms that describe the operation & predicate for use in error printing
-(define (typesafe-binary-op racket-op op-atom predicate predicate-atom)
-  (lambda (op1 op2)
-    (cond
-      [(not (predicate op1)) (error (~a "Invalid left hand side of operator " op-atom ": expected " predicate-atom ", got " op1))]
-      [(not (predicate op2)) (error (~a "Invalid right hand side of operator " op-atom ": expected " predicate-atom ", got " op2))]
-      [else (racket-op op1 op2)])))
-
-; Create function that runs racket-op on one input but errors if the input fails predicate
-; op-atom & predicate-atom are atoms that describe the operation & predicate for use in error printing
-(define (typesafe-unary-op racket-op op-atom predicate predicate-atom)
-  (lambda (op1)
-    (cond
-      [(not (predicate op1)) (error (~a "Invalid operand of operator " op-atom ": expected " predicate-atom ", got " op1))]
-      [else (racket-op op1)])))
 
 ; ====================================
 ; Abstractions
