@@ -69,7 +69,7 @@
      (state-generic (then-expr expr) state next return break continue throw)]
     [(contains-else? expr)
      (state-generic (else-expr expr) state next return break continue throw)]
-    [else state]))
+    [else (next state)]))
 
 ; Returns state after a while statement
 (define (state-while expr state next return break continue throw)
