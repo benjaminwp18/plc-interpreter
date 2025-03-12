@@ -101,7 +101,7 @@
 (define (state-try expr state next return break continue throw)
   (let ([finally-continuation (lambda (s) (state-generic (finally-block expr) s next return break continue throw))])
     (cond
-      ((and (contains-catch? expr) (contains-finally? expr))
+      [(and (contains-catch? expr) (contains-finally? expr))
        (state-block (try-body expr) state finally-continuation return finally-continuation finally-continuation
                     (lambda (e s)
                       (state-generic (catch-block expr)
@@ -111,8 +111,8 @@
                                      finally-continuation
                                      finally-continuation
                                      (lambda (e s) (state-generic (finally-block expr) s next return break continue
-                                                                  (lambda (e s) (state-generic (finally-block expr) s next return break continue throw))))))))
-      ((contains-catch? expr)
+                                                                  (lambda (e s) (state-generic (finally-block expr) s next return break continue throw)))))))]
+      [(contains-catch? expr)
        (state-block (try-body expr) state next return break continue
                     (lambda (e s)
                       (state-generic (catch-block expr)
@@ -121,12 +121,12 @@
                                      return
                                      break
                                      continue
-                                     throw))))
-      ((contains-finally? expr)
+                                     throw)))]
+      [(contains-finally? expr)
        (state-block (try-body expr) state finally-continuation return finally-continuation finally-continuation
                     (lambda (e s) (state-generic (finally-block expr) s (lambda (s) (throw e s)) return break continue
-                                                 (lambda (e s) (state-generic (finally-block expr) s next return break continue throw))))))
-      (else (error "Try block must have at least one catch or finally block")))))
+                                                 (lambda (e s) (state-generic (finally-block expr) s next return break continue throw)))))]
+      [else (error "Try block must have at least one catch or finally block")])))
 
 
 ; Returns state after a catch block
