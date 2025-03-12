@@ -97,29 +97,37 @@
                      (lambda (s) (state-while expr s next return break continue throw))
                      throw)))
 
-; Returns state after a try block (may or may not contain a finally block)
+; Returns state after a try block (catch or finally block may be empty)
 (define (state-try expr state next return break continue throw)
-  (if (contains-finally? expr)
-      (let ([finally-continuation (lambda (s) (state-generic (finally-block expr) s next return break continue throw))])
-        (state-block (try-body expr) state finally-continuation return finally-continuation finally-continuation
-                     (lambda (e s)
-                       (state-generic (catch-block expr)
-                                      (binding-create (caught-value expr) e s)
-                                      finally-continuation
-                                      return
-                                      finally-continuation
-                                      finally-continuation
-                                      (lambda (e s) (state-generic (finally-block expr) s next return break continue
-                                                                   (lambda (e s) (state-generic (finally-block expr) s next return break continue throw))))))))
-      (state-block (try-body expr) state next return break continue
-                   (lambda (e s)
-                     (state-generic (catch-block expr)
-                                    (binding-create (caught-value expr) e s)
-                                    next
-                                    return
-                                    break
-                                    continue
-                                    throw)))))
+  (let ([finally-continuation (lambda (s) (state-generic (finally-block expr) s next return break continue throw))])
+    (cond
+      ((and (contains-catch? expr) (contains-finally? expr))
+       (state-block (try-body expr) state finally-continuation return finally-continuation finally-continuation
+                    (lambda (e s)
+                      (state-generic (catch-block expr)
+                                     (binding-create (caught-value expr) e s)
+                                     finally-continuation
+                                     return
+                                     finally-continuation
+                                     finally-continuation
+                                     (lambda (e s) (state-generic (finally-block expr) s next return break continue
+                                                                  (lambda (e s) (state-generic (finally-block expr) s next return break continue throw))))))))
+      ((contains-catch? expr)
+       (state-block (try-body expr) state next return break continue
+                    (lambda (e s)
+                      (state-generic (catch-block expr)
+                                     (binding-create (caught-value expr) e s)
+                                     next
+                                     return
+                                     break
+                                     continue
+                                     throw))))
+      ((contains-finally? expr)
+       (state-block (try-body expr) state finally-continuation return finally-continuation finally-continuation
+                    (lambda (e s) (state-generic (finally-block expr) s (lambda (s) (throw e s)) return break continue
+                                                 (lambda (e s) (state-generic (finally-block expr) s next return break continue throw))))))
+      (else (error "Try block must have at least one catch or finally block")))))
+
 
 ; Returns state after a catch block
 (define (state-catch expr state next return break continue throw)
@@ -140,6 +148,10 @@
 ; whether an if statement contains an else expression
 (define (contains-else? expr)
   (not-null? (else-expr-pos expr)))
+
+; whether a try block contains a catch block
+(define (contains-catch? expr)
+  (not-null? (catch-block expr)))
 
 ; whether a try block contains a finally block
 (define (contains-finally? expr)
