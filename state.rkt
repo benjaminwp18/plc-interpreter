@@ -69,12 +69,12 @@
 ; Declaration statements may or may not contain an initialization value
 (define (state-declare expr state next)
   (if (initializes? expr)
-      (next (binding-create (variable expr) (value-generic (value expr) state identity) state))
+      (value-generic (value expr) state (lambda (v) (next (binding-create (variable expr) v state))))
       (next (binding-create (variable expr) binding-uninit state))))
 
 ; Returns state after an assignment
 (define (state-assign expr state next)
-  (next (binding-set (variable expr) (value-generic (value expr) state identity) state)))
+  (value-generic (value expr) state (lambda (v) (next (binding-set (variable expr) v state)))))
 
 ; Returns state after an if statement
 (define (state-if expr state next return break continue throw)
