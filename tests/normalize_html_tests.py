@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from warnings import warn
 import re
 
-
 @dataclass
 class Test:
     number: int
