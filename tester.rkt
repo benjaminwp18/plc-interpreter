@@ -3,7 +3,11 @@
 (require "state.rkt" "parser/simpleParser.rkt")
 (require html-parsing)  ; raco pkg install html-parsing
 (require ansi-color)    ; raco pkg install ansi-color
-(provide test-src test-raw-html test-html parse-str)
+(provide
+ test-html test-html-file test-html-single
+ test-src
+ test-raw-html
+ parse-str)
 
 ;;;; CODE SOURCE FILE TESTER ;;;;
 ; Test all code files in the tests/src directory
@@ -14,25 +18,55 @@
 
 ;;;; GENERATED HTML FILE TESTER ;;;;
 ; Evaluate the tests in the tests/html directory (generated from assignment tests by convert_tests.py)
+; Usage: (test-html)
 (define (test-html)
-  (for ([filename (list-files "tests/html")])
-    (begin
-      (display "\n\n")
-      (foreground-color 'black)
-      (background-color 'white)
-      (color-display (~a "\n\n##### Testing file '" filename "' #####\n"))
-      (foreground-color 'white)
-      (background-color 'black)
-      (display "\n")
-      (let
-          ([numfailure (apply + (map (lambda (test)
-                                       (begin
-                                         (display-test-header filename test)
-                                         (if (evaluate-test filename test) 0 1)))
-                                     (get-tests-from-html filename)))])
-        (begin (background-color (if (1 . <= . numfailure) 'red 'green))
-               (display "\n")
-               (color-display (~a "\nFailed " numfailure " tests in this file")))))))
+  (for ([filepath (list-files "tests/html")])
+    (test-html-filepath filepath)))
+
+; Evaluate the tests in the specified HTML file in the tests/html directory
+; Usage: (test-html-file "part1tests")
+(define (test-html-file filename)
+  (test-html-filepath (~a "tests/html/" filename ".html")))
+
+; Evaluate the specified test in the specified HTML file in the tests/html directory
+; Do not catch errors (allows the error stack to be viewed)
+; Usage: (test-html-single "part1tests" 5)
+(define (test-html-single filename test-number)
+  (for ([test (get-tests-from-html (~a "tests/html/" filename ".html"))])
+    (if (equal? (nt-field 'number test) test-number)
+        (begin
+          (display-test-header filename test)
+          (foreground-color 'blue)
+          (background-color 'black)
+          (color-display (~a "\n" (nt-field 'code test)))
+          (foreground-color 'white)
+          (display "\n")
+          (display (~a "Result: " (interpret-tree (parse-str (nt-field 'code test))))))
+        #f)))
+
+; Run the provided test object from the provided file
+; Return 0 if the test passes and 1 if it fails; print colorized results
+(define (run-test filename test)
+  (begin
+    (display-test-header filename test)
+    (if (evaluate-test filename test) 0 1)))
+
+; Run the tests in the provided HTML file (generated from assignment tests by convert_tests.py)
+(define (test-html-filepath filepath)
+  (begin
+    (display "\n\n")
+    (foreground-color 'black)
+    (background-color 'white)
+    (color-display (~a "\n\n##### Testing file '" filepath "' #####\n"))
+    (foreground-color 'white)
+    (background-color 'black)
+    (display "\n")
+    (let
+        ([numfailure (apply + (map (lambda (test) (run-test filepath test))
+                                   (get-tests-from-html filepath)))])
+      (begin (background-color (if (1 . <= . numfailure) 'red 'green))
+             (display "\n")
+             (color-display (~a "\nFailed " numfailure " tests in this file"))))))
 
 ; Print the metadata about test from file filename
 (define (display-test-header filename test)
@@ -60,8 +94,8 @@
                success)))))
 
 ; Return list of tests in the given HTML file
-(define (get-tests-from-html filename)
-  (get-tests (html->xexp (open-input-file filename))))
+(define (get-tests-from-html filepath)
+  (get-tests (html->xexp (open-input-file filepath))))
 
 ; Return list of tests in the given HTML xexp object
 (define (get-tests xexp)
@@ -82,12 +116,12 @@
   (cond
     [(null? xexp) '()]
     [(list? (car xexp)) (cons (parse-test (car xexp)) (parse-test (cdr xexp)))]
-    [(equal? (car xexp) 'number) xexp]
+    [(equal? (car xexp) 'number) (list 'number (string->number (cadr xexp)))]
     [(equal? (car xexp) 'description) xexp]
     [(equal? (car xexp) 'result)
      (cond
-       [(equal? (cadr xexp) "true") (list 'result 'true)]
-       [(equal? (cadr xexp) "false") (list 'result 'false)]
+       [(equal? (cadr xexp) "true") '(result true)]
+       [(equal? (cadr xexp) "false") '(result false)]
        [(string->number (cadr xexp)) (list 'result (string->number (cadr xexp)))]
        [else xexp])]
     [(equal? (car xexp) 'does-error) (list 'does-error (equal? (cadr xexp) "true"))]
