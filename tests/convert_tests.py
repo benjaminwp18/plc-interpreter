@@ -46,7 +46,7 @@ raw_html_dir = Path('raw_html')
 raw_html_tests = list(raw_html_dir.iterdir())
 raw_html_tests.sort()
 
-normalized_html_dir = Path('normalized_html')
+normalized_html_dir = Path('html')
 
 for raw_html_path in raw_html_tests:
     print(f'\n\n##### Processing {raw_html_path}... #####\n')
