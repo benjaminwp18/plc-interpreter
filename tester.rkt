@@ -1,8 +1,8 @@
 #lang racket
 
 (require "state.rkt" "parser/simpleParser.rkt")
-(require html-parsing)
-(provide test-src test-html parse-str)
+(require html-parsing)  ; Might need to run `raco pkg install html-parsing`
+(provide test-src test-html test-norm-html parse-str)
 
 ; Test all code files in the tests/src directory
 (define (test-src)
@@ -14,6 +14,21 @@
   (for ([filename (list-files "tests/html")])
     (for ([str (get-pre-contents-from-html filename)])
       (display-test str (parse-str str)))))
+
+(define (test-norm-html)
+  (for ([filename (list-files "tests/normalized_html")])
+    (begin
+      (display (~a "\n\n\n\n##### Testing file '" filename "' ####\n"))
+      (for ([test (get-tests-from-norm-html filename)])
+        (begin
+          (display-test-header filename test)
+          (display (~a "\n" filename "\t\tActual result: "
+            (with-handlers ([exn:fail? (lambda (v) (~a v))])
+              (interpret-tree (parse-str (nt-field 'code test)))))))))))
+
+(define (display-test-header filename test)
+  (display (~a "\n" filename "\tTest " (nt-field 'number test) " (" (nt-field 'description test) ")\n"
+              filename "\t\tExpect " (if (nt-field 'does-error test) "error" "return") ": " (nt-field 'result test))))
 
 ; Display the results of a test
 ; str is some identifier for the test
@@ -28,6 +43,53 @@
 ; s.t. each string is the contents of a <pre> tag
 (define (get-pre-contents-from-html filename)
   (get-pre-contents (html->xexp (open-input-file filename))))
+
+(define (get-tests-from-norm-html filename)
+  (get-tests (html->xexp (open-input-file filename))))
+
+(define (get-tests xexp)
+  (cond
+    [(null? xexp) '()]
+    [(list? (car xexp)) (append (get-tests (car xexp)) (get-tests (cdr xexp)))]
+    [(eq? (car xexp) 'test) (list (parse-test (cdr xexp)))]
+    [else (get-tests (cdr xexp))]))
+
+; (number description does-error result code)
+(define (parse-test xexp)
+  (cond
+    [(null? xexp) '()]
+    [(list? (car xexp)) (cons (parse-test (car xexp)) (parse-test (cdr xexp)))]
+    [(eq? (car xexp) 'number) xexp]
+    [(eq? (car xexp) 'description) xexp]
+    [(eq? (car xexp) 'result)
+     (cond
+      [(eq? (cadr xexp) "true") '(result true)]
+      [(eq? (cadr xexp) "false") '(result false)]
+      [(string->number (cadr xexp)) (list 'result (string->number (cadr xexp)))]
+      [else xexp])]
+    [(eq? (car xexp) 'does-error) (list 'does-error (eq? (cadr xexp) "true"))]
+    [(eq? (car xexp) 'code) (list 'code (xexp-strs-to-str (cdr xexp)))]
+    [else (parse-test (cdr xexp))]))
+
+; (define nt-number car)
+; (define nt-description cadr)
+; (define nt-does-error caddr)
+; (define nt-result cadddr)
+; (define (nt-code norm-test) (car (cddddr norm-test)))
+
+(define (nt-field field-atom norm-test)
+  (cond
+    [(null? norm-test) (error (~a "Failed to find field '" field-atom "' in test"))]
+    [(and
+      (list? (car norm-test))
+      (eq? (caar norm-test) field-atom))
+      (cadar norm-test)]
+    [else (nt-field field-atom (cdr norm-test))]))
+
+(define (xexp-strs-to-str xexp-strs)
+  (string-join
+    (filter (lambda (el) (not (or (eq? el "\r\n") (eq? el "\n")))) xexp-strs)
+    ""))
 
 ; Convert a xexp list to a list of strings
 ; s.t. each string is the contents of a '(pre (...)) tag
