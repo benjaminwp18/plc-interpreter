@@ -38,6 +38,13 @@
 Run `tests/convert_tests.py` to convert raw HTML tests in `tests/raw_html` to
 machine-readable tests in `tests/html`.
 
+You may need to install `html-parsing` and `ansi-color` to run the tester:
+
+```bash
+raco pkg install html-parsing
+raco pkg install ansi-color
+```
+
 Then:
  - test-html: `(test-html)`
  - test-html-file: `(test-html-file "part1tests")`
