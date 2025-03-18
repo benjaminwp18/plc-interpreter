@@ -34,10 +34,12 @@
 
 ## Tester
 ### tester.rkt
-#### Test HTML suites
+#### Convert raw HTML assignment tests
 Run `tests/convert_tests.py` to convert raw HTML tests in `tests/raw_html` to
-machine-readable tests in `tests/html`.
+machine-readable tests in `tests/html`. This should only be done when new raw
+tests are added.
 
+#### Test HTML suites
 You may need to install `html-parsing` and `ansi-color` to run the tester:
 
 ```bash
