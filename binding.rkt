@@ -33,7 +33,7 @@
 (define (lyr-lookup-binding name layer)
   (cond
     [(lyr-empty? layer) binding-unbound]
-    [(equal? (lyr-first-name layer) name) (lyr-first-val layer)]
+    [(equal? (lyr-first-name layer) name) (unbox (lyr-first-val layer))]
     [else (lyr-lookup-binding name (lyr-cdr layer))]))
 
 ; Return binding-unbound if name's binding does not exist in state
@@ -60,7 +60,10 @@
 (define (lyr-set-binding name value layer)
   (cond
     [(lyr-empty? layer) binding-unbound]
-    [(equal? (lyr-first-name layer) name) (lyr-cons (list name value) (lyr-cdr layer))]
+    [(equal? (lyr-first-name layer) name)
+      (begin
+        (set-box! (lyr-first-val layer) value)
+        layer)]
     [else (let ([result (lyr-set-binding name value (lyr-cdr layer))])
             (if (equal? binding-unbound result)
                 binding-unbound
@@ -76,7 +79,7 @@
 ; Return this layer with an empty binding created for name
 ; Do not check for already existing bindings
 (define (lyr-create-binding name value layer)
-  (lyr-cons (list name value) layer))
+  (lyr-cons (list name (box value)) layer))
 
 (define binding-unbound "unbound")
 (define binding-uninit '())
@@ -110,6 +113,7 @@
   (list
    (cdr (lyr-names layer))
    (cdr (lyr-vals layer))))
+
 (define (lyr-cons pair layer)
   (list
    (cons (binding-name pair) (lyr-names layer))
