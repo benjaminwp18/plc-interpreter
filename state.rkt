@@ -110,8 +110,7 @@
                                      finally-continuation
                                      finally-continuation
                                      finally-continuation
-                                     (lambda (e s) (state-generic (finally-block expr) s next return break continue
-                                                                  (lambda (e s) (state-generic (finally-block expr) s next return break continue throw)))))))]
+                                     (lambda (e s) (state-generic (finally-block expr) s next return break continue throw)))))]
       [(contains-catch? expr)
        (state-block (try-body expr) state next return break continue
                     (lambda (e s)
