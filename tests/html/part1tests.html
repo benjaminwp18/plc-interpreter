@@ -2,43 +2,69 @@
 <head>
 <title>Testing Your Interpreter, Part 1</title>
 </head>
-
 <body>
-<h3>Testing Your Interpreter, Part 1</h3>
 
-<p>Test 1: This code should return 150.
-<pre>
+<test>
+<number>1</number>
+<description>Test 1: This code should return 150.</description>
+<does-error>false</does-error>
+<result>150</result>
+<code>
 return 150;
-</pre></p>
+</code>
+</test>
 
-<p>Test 2: This code should return -4.
-<pre>
+<test>
+<number>2</number>
+<description>Test 2: This code should return -4.</description>
+<does-error>false</does-error>
+<result>-4</result>
+<code>
 return 6 * (8 + (5 % 3)) / 11 - 9;
-</pre>
-</p>
+</code>
+</test>
 
-<p>Test 3: This code should return 10.
-<pre>
+<test>
+<number>3</number>
+<description>Test 3: This code should return 10.</description>
+<does-error>false</does-error>
+<result>10</result>
+<code>
 var z;
 z = 10;
 return z;
-</pre></p>
+</code>
+</test>
 
-<p>Test 4: This code should return 16.
-<pre>
+<test>
+<number>4</number>
+<description>Test 4: This code should return 16.</description>
+<does-error>false</does-error>
+<result>16</result>
+<code>
 var x = (5 * 7 - 3) / 2;
 return x;
-</pre></p>
+</code>
+</test>
 
-<p>Test 5: This code should return 220.
-<pre>
+<test>
+<number>5</number>
+<description>Test 5: This code should return 220.</description>
+<does-error>false</does-error>
+<result>220</result>
+<code>
 var x = 10;
 var y = 12 + x;
 return x * y;
-</pre></p>
+</code>
+</test>
 
-<p>Test 6: This code should return 5.
-<pre>
+<test>
+<number>6</number>
+<description>Test 6: This code should return 5.</description>
+<does-error>false</does-error>
+<result>5</result>
+<code>
 var x = 5;
 var y = 6;
 var m;
@@ -47,10 +73,15 @@ if (x <= y)
 else
   m = y;
 return m;
-</pre></p>
+</code>
+</test>
 
-<p>Test 7: This code should return 6.
-<pre>
+<test>
+<number>7</number>
+<description>Test 7: This code should return 6.</description>
+<does-error>false</does-error>
+<result>6</result>
+<code>
 var x = 5;
 var y = 6;
 var m;
@@ -59,82 +90,128 @@ if (x >= y)
 else
   m = y;
 return m;
-</pre>
-</p>
+</code>
+</test>
 
-<p>Test 8: This code should return 10.
-<pre>
+<test>
+<number>8</number>
+<description>Test 8: This code should return 10.</description>
+<does-error>false</does-error>
+<result>10</result>
+<code>
 var x = 5;
 var y = 6;
 if (x != y)
   x = 10;
 return x;
-</pre></p>
+</code>
+</test>
 
-<p>Test 9: This code should return 5.
-<pre>
+<test>
+<number>9</number>
+<description>Test 9: This code should return 5.</description>
+<does-error>false</does-error>
+<result>5</result>
+<code>
 var x = 5;
 var y = 6;
 if (x == y)
   x = 10;
 return x;
-</pre></p>
+</code>
+</test>
 
-<p>Test 10: This code should return -39.
-<pre>
+<test>
+<number>10</number>
+<description>Test 10: This code should return -39.</description>
+<does-error>false</does-error>
+<result>-39</result>
+<code>
 return 6 * -(4 * 2) + 9;
-</pre></p>
+</code>
+</test>
 
-<p>Test 11: This code should give an error (using before declaring).
-<pre>
+<test>
+<number>11</number>
+<description>Test 11: This code should give an error (using before declaring).</description>
+<does-error>true</does-error>
+<result>error</result>
+<code>
 var x = 1;
 y = 10 + x;
 return y;
-</pre>
-</p>
+</code>
+</test>
 
-<p>Test 12: This code should give an error (using before declaring).
-<pre>
+<test>
+<number>12</number>
+<description>Test 12: This code should give an error (using before declaring).</description>
+<does-error>true</does-error>
+<result>error</result>
+<code>
 var y;
 y = x;
 return y;
-</pre></p>
+</code>
+</test>
 
-<p>Test 13: This code should give an error (using before assigning). 
-<pre>
+<test>
+<number>13</number>
+<description>Test 13: This code should give an error (using before assigning).</description>
+<does-error>true</does-error>
+<result>error</result>
+<code>
 var x;
 var y;
 x = x + y;
 return x;
-</pre></p>
+</code>
+</test>
 
-<p>Test 14: This code should give an error (redefining).  This is not a required error, but it would be nice if you
-could catch these.
-<pre>
+<test>
+<number>14</number>
+<description>Test 14: This code should give an error (redefining).  This is not a required error, but it would be nice if you could catch these.</description>
+<does-error>true</does-error>
+<result>error</result>
+<code>
 var x = 10;
 var y = 20;
 var x = x + y;
 return x;
-</pre></p>
+</code>
+</test>
 
-
-<p>Test 15: This code should return true (not #t).
-<pre>
+<test>
+<number>15</number>
+<description>Test 15: This code should return true (not #t).</description>
+<does-error>false</does-error>
+<result>true</result>
+<code>
 return (10 > 20) || (5 - 6 < 10) && true;
-</pre></p>
+</code>
+</test>
 
-<p>Test 16: This code should return 100.
-<pre>
+<test>
+<number>16</number>
+<description>Test 16: This code should return 100.</description>
+<does-error>false</does-error>
+<result>100</result>
+<code>
 var x = 10;
 var y = 20;
 if (x < y && (x % 2) == 0)
   return 100;
 else
   return 200;
-</pre></p>
+</code>
+</test>
 
-<p>Test 17: This code should return false (not #f).
-<pre>
+<test>
+<number>17</number>
+<description>Test 17: This code should return false (not #f).</description>
+<does-error>false</does-error>
+<result>false</result>
+<code>
 var x = 100 % 2 == 0;
 var y = 10 >= 20;
 var z;
@@ -143,10 +220,15 @@ if (x || y)
 else
   z = x;
 return z;
-</pre></p>
+</code>
+</test>
 
-<p>Test 18: This code should return true.
-<pre>
+<test>
+<number>18</number>
+<description>Test 18: This code should return true.</description>
+<does-error>false</does-error>
+<result>true</result>
+<code>
 var x = 10;
 var y = 20;
 var z = 20 >= 10;
@@ -155,38 +237,56 @@ if (!z || false)
 else
   z = z;
 return z;
-</pre></p>
+</code>
+</test>
 
-<p>Test 19: This code should return 128.
-<pre>
+<test>
+<number>19</number>
+<description>Test 19: This code should return 128.</description>
+<does-error>false</does-error>
+<result>128</result>
+<code>
 var x = 2;
 while (x < 100)
   x = x * 2;
 return x;
-</pre></p>
+</code>
+</test>
 
-<p>Test 20: This code should return 12;
-<pre>
+<test>
+<number>20</number>
+<description>Test 20: This code should return 12;</description>
+<does-error>false</does-error>
+<result>12</result>
+<code>
 var x = 20;
 var y = 128;
 while (x * x > 128)
   x = x - 1;
 x = x + 1;
 return x;
-</pre></p>
+</code>
+</test>
 
-<h4> Additional Tests for Students Looking for an Extra Challenge </h4>
-
-<p>Test 21: This code should return 30.
-<pre>
+<test>
+<number>21</number>
+<description>Test 21: This code should return 30.</description>
+<does-error>false</does-error>
+<result>30</result>
+<code>
 var x;
 var y;
 var z = x = y = 10;
 return x + y + z;
-</pre></p>
+</code>
+</test>
 
-<p>Test 22: This code should return 11.
-<pre>
+<test>
+<number>22</number>
+<description>Test 22: This code should return 11.</description>
+<does-error>false</does-error>
+<result>11</result>
+<code>
 var x;
 var y;
 x = y = 10;
@@ -194,56 +294,86 @@ if ((x = x + 1) > y)
   return x;
 else
   return y;
-</pre></p>
+</code>
+</test>
 
-<p>Test 23: This code should return 1106.
-<pre>
+<test>
+<number>23</number>
+<description>Test 23: This code should return 1106.</description>
+<does-error>false</does-error>
+<result>1106</result>
+<code>
 var x;
 var y = (x = 5) + (x = 6);
 return y * 100 + x;
-</pre></p>
+</code>
+</test>
 
-<p>Test 24: This code should return 12.
-<pre>
+<test>
+<number>24</number>
+<description>Test 24: This code should return 12.</description>
+<does-error>false</does-error>
+<result>12</result>
+<code>
 var x = 10;
 x = (x = 6) + x;
 return x;
-</pre></p>
+</code>
+</test>
 
-<p>Test 25: This code should return 16.
-<pre>
+<test>
+<number>25</number>
+<description>Test 25: This code should return 16.</description>
+<does-error>false</does-error>
+<result>16</result>
+<code>
 var x = 10;
 x = x + (x = 6);
 return x;
-</pre></p>
+</code>
+</test>
 
-<p>Test 26: This code should return 72.
-<pre>
+<test>
+<number>26</number>
+<description>Test 26: This code should return 72.</description>
+<does-error>false</does-error>
+<result>72</result>
+<code>
 var x;
 var y;
 var z;
 var w = (x = 6) + (y = z = 20);
 return w + x + y + z;
-</pre></p>
+</code>
+</test>
 
-<p>Test 27: This code should return 21.
-<pre>
+<test>
+<number>27</number>
+<description>Test 27: This code should return 21.</description>
+<does-error>false</does-error>
+<result>21</result>
+<code>
 var x = 0;
 while ((x = x + 1) < 21)
   x = x;
 return x;
-</pre></p>
+</code>
+</test>
 
-<p>Test 28: This code should return 164.
-<pre>
+<test>
+<number>28</number>
+<description>Test 28: This code should return 164.</description>
+<does-error>false</does-error>
+<result>164</result>
+<code>
 var a = 31160;
 var b = 1476;
 var r = a % b;
 while (r != 0)
   r = (a = b) % (b = r);
 return b;
-</pre></p>
+</code>
+</test>
 
 </body>
 </html>
-

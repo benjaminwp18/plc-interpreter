@@ -7,7 +7,7 @@
 ;;;; ***************************************************
 
 (provide binding-lookup binding-status binding-set binding-create
-         binding-unbound binding-uninit binding-init empty-stt stt-empty?
+         binding-unbound binding-uninit binding-init empty-stt
          binding-push-layer binding-pop-layer)
 
 ; Return the state with an empty layer added
