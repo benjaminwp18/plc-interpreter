@@ -19,7 +19,7 @@
   (state-statement-list tree
                         empty-stt
                         (lambda (s) binding-uninit)
-                        identity
+                        (lambda (v s) v)
                         (lambda (s) (error "'break' called outside loop"))
                         (lambda (s) (error "'continue' called outside loop"))
                         (lambda (e s) (error (~a "Error: " e)))))
@@ -45,7 +45,7 @@
       [(eq? type '=)         (state-assign  body state next)]
       [(eq? type 'if)        (state-if      body state next return break continue throw)]
       [(eq? type 'while)     (state-while   body state next return next continue throw)]
-      [(eq? type 'return)    (value-generic (return-value body) state return)]
+      [(eq? type 'return)    (value-generic (return-value body) state (lambda (v) (return v state)))]
       [(eq? type 'break)     (break         state)]
       [(eq? type 'continue)  (continue      state)]
       [(eq? type 'throw)     (value-generic (thrown-value body) state (lambda (v) (throw v state)))]
@@ -99,15 +99,16 @@
 
 ; Returns state after a try block (catch or finally block may be empty)
 (define (state-try expr state next return break continue throw)
-  (let ([finally-cont (lambda (s) (state-generic (finally-block expr) s next return break continue throw))])
+  (let ([finally-cont (lambda (s) (state-generic (finally-block expr) s next return break continue throw))]
+        [return-finally-cont (lambda (v s1) (state-generic (finally-block expr) s1 (lambda (s2) (return v s2)) return break continue throw))])
     (cond
       [(and (contains-catch? expr) (contains-finally? expr))
-       (state-block (try-body expr) state finally-cont finally-cont finally-cont finally-cont
+       (state-block (try-body expr) state finally-cont return-finally-cont finally-cont finally-cont
                     (lambda (e s)
                       (state-generic (catch-block expr)
                                      (binding-create (caught-value expr) e s)
                                      finally-cont
-                                     finally-cont
+                                     return-finally-cont
                                      finally-cont
                                      finally-cont
                                      (lambda (e s) (state-generic (finally-block expr) s next return break continue throw)))))]
@@ -122,7 +123,7 @@
                                      continue
                                      throw)))]
       [(contains-finally? expr)
-       (state-block (try-body expr) state finally-cont finally-cont finally-cont finally-cont
+       (state-block (try-body expr) state finally-cont return-finally-cont finally-cont finally-cont
                     (lambda (e s) (state-generic (finally-block expr) s (lambda (s) (throw e s)) return break continue
                                                  (lambda (e s) (state-generic (finally-block expr) s next return break continue throw)))))]
       [else (error "Try block must have at least one catch or finally block")])))
