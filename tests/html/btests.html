@@ -1,0 +1,128 @@
+<html>
+<head>
+<title>Testing Your Interpreter, Part 1</title>
+</head>
+<body>
+
+<test>
+<number>1</number>
+<description>Factorial</description>
+<does-error>false</does-error>
+<result>120</result>
+<code>
+var n = 5;
+var result = 1;
+while (n > 0) {
+    result = result * n;
+    n = n - 1;
+}
+return result;
+</code>
+</test>
+
+<test>
+<number>2</number>
+<description>Nested try/catch</description>
+<does-error>false</does-error>
+<result>12345</result>
+<code>
+try {
+    try {
+        throw 30;
+    }
+    catch (e) {
+        try {
+            throw 20;
+        }
+        catch (e2) {
+            if (e2 == 20) {
+                throw 12345;
+            }
+        }
+    }
+}
+catch (e3) {
+    return e3;
+}
+</code>
+</test>
+
+<test>
+<number>3</number>
+<description>Throw in catch; return in finally</description>
+<does-error>false</does-error>
+<result>12345</result>
+<code>
+try {
+    throw 10;
+}
+catch (e1) {
+    throw 20;
+}
+finally {
+    return 12345;
+}
+</code>
+</test>
+
+<test>
+<number>4</number>
+<description>Nested try/catch/finally</description>
+<does-error>false</does-error>
+<result>12345</result>
+<code>
+try {
+    try {
+        throw 10;
+    }
+    finally {
+        throw 20;
+    }
+}
+catch (e1) {
+    if (e1 == 20) {
+        throw 40;
+    }
+    else {
+        throw 30;
+    }
+}
+finally {
+    return 12345;
+}
+</code>
+</test>
+
+<test>
+<number>5</number>
+<description>Finally returns override try returns</description>
+<does-error>false</does-error>
+<result>12345</result>
+<code>
+try {
+    return 10;
+}
+finally {
+    return 12345;
+}
+</code>
+</test>
+
+<test>
+<number>6</number>
+<description>??????????????????</description>
+<does-error>false</does-error>
+<result>10</result>
+<code>
+try {
+    return 10;
+}
+catch (e1) {
+    return 20;
+}
+finally {}
+</code>
+</test>
+
+</body>
+</html>
