@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Testing Your Interpreter, Part 1</title>
+<title>Benjamin's tests</title>
 </head>
 <body>
 
@@ -110,12 +110,31 @@ finally {
 
 <test>
 <number>6</number>
-<description>??????????????????</description>
+<description>Finally returns override try & catch returns</description>
 <does-error>false</does-error>
-<result>10</result>
+<result>12345</result>
 <code>
 try {
-    return 10;
+    throw 10;
+    return 20;
+}
+catch (e1) {
+    return 30;
+}
+finally {
+    return 12345;
+}
+</code>
+</test>
+
+<test>
+<number>7</number>
+<description>If finally doesn't return, try return should fall thru</description>
+<does-error>false</does-error>
+<result>12345</result>
+<code>
+try {
+    return 12345;
 }
 catch (e1) {
     return 20;
