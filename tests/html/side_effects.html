@@ -1,0 +1,128 @@
+<html>
+<head>
+<title>Side effects</title>
+</head>
+<body>
+
+<test>
+<number>21</number>
+<description>Test 21: This code should return 30.</description>
+<does-error>false</does-error>
+<result>30</result>
+<code>
+var x;
+var y;
+var z = x = y = 10;
+return x + y + z;
+</code>
+</test>
+
+<test>
+<number>22</number>
+<description>Test 22: This code should return 11.</description>
+<does-error>false</does-error>
+<result>11</result>
+<code>
+var x;
+var y;
+x = y = 10;
+if ((x = x + 1) > y)
+    return x;
+else
+    return y;
+</code>
+</test>
+
+<test>
+<number>23</number>
+<description>Test 23: This code should return 1106.</description>
+<does-error>false</does-error>
+<result>1106</result>
+<code>
+var x;
+var y = (x = 5) + (x = 6);
+return y * 100 + x;
+</code>
+</test>
+
+<test>
+<number>24</number>
+<description>Test 24: This code should return 12.</description>
+<does-error>false</does-error>
+<result>12</result>
+<code>
+var x = 10;
+x = (x = 6) + x;
+return x;
+</code>
+</test>
+
+<test>
+<number>25</number>
+<description>Test 25: This code should return 16.</description>
+<does-error>false</does-error>
+<result>16</result>
+<code>
+var x = 10;
+x = x + (x = 6);
+return x;
+</code>
+</test>
+
+<test>
+<number>26</number>
+<description>Test 26: This code should return 72.</description>
+<does-error>false</does-error>
+<result>72</result>
+<code>
+var x;
+var y;
+var z;
+var w = (x = 6) + (y = z = 20);
+return w + x + y + z;
+</code>
+</test>
+
+<test>
+<number>27</number>
+<description>Test 27: This code should return 21.</description>
+<does-error>false</does-error>
+<result>21</result>
+<code>
+var x = 0;
+while ((x = x + 1) < 21)
+    x = x;
+return x;
+</code>
+</test>
+
+<test>
+<number>28</number>
+<description>Test 28: This code should return 164.</description>
+<does-error>false</does-error>
+<result>164</result>
+<code>
+var a = 31160;
+var b = 1476;
+var r = a % b;
+while (r != 0)
+    r = (a = b) % (b = r);
+return b;
+</code>
+</test>
+
+<test>
+<number>20</number>
+<description>Test 20: This code should return 21.</description>
+<does-error>false</does-error>
+<result>21</result>
+<code>
+var x = 0;
+while ((x = x + 1) < 21)
+    x = x;
+return x;
+</code>
+</test>
+
+</body>
+</html>
