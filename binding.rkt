@@ -19,11 +19,14 @@
 (define (binding-pop-layer state)
   (stt-rest-lyrs state))
 
+; Get the index of top layer in state (global layer is 1 and each layer after adds 1)
 (define (binding-layer-idx state)
   (if (stt-empty? state)
       0
       (+ 1 (binding-layer-idx (stt-rest-lyrs state)))))
 
+; Get the state with all layers above target-lyr-idx removed
+; Errors if target-lyr-idx > (binding-layer-idx state)
 (define (binding-state-by-layer-idx state target-lyr-idx)
   (let
       ([cur-lyr-idx (binding-layer-idx state)])
