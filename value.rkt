@@ -3,7 +3,7 @@
 ;;;; ***************************************************
 ;;;; Kyle Kaufman, Benjamin Poulin, Kasey Wei
 ;;;; CSDS 345 Spring 2025
-;;;; Group Project 2: Flow Control Interpreter
+;;;; Group Project 3: Imperative Language Interpreter
 ;;;; ***************************************************
 
 (require "binding.rkt" "common.rkt")

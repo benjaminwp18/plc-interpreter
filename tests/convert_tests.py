@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+from bs4 import element
 from pathlib import Path
 from dataclasses import dataclass
 from warnings import warn
@@ -33,6 +34,7 @@ def tests_html_str(title: str, tests: list[Test]):
     html_str = f"""<html>
 <head>
 <title>{title}</title>
+<parser>function</parser>
 </head>
 <body>
 {tests_str}
@@ -61,8 +63,22 @@ def make_tests(overwrite: bool = False):
 
                     tests = []
                     for p in soup.find_all('p'):
-                        if p.pre is None:
-                            warn(f'Skipping paragraph: {p}')
+                        if p.pre is not None:
+                            pre = p.pre
+                        elif type(p.next_sibling) is element.Tag:
+                            if p.next_sibling.name == 'pre':
+                                pre = p.next_sibling
+                            else:
+                                warn(f'Skipping paragraph: {p} (no child pre & next sibling was a different element)')
+                                continue  # This probably isn't a test
+                        elif type(p.next_sibling.next_sibling) is element.Tag:
+                            if p.next_sibling.next_sibling.name == 'pre':
+                                pre = p.next_sibling.next_sibling
+                            else:
+                                warn(f'Skipping paragraph: {p} (no child pre, no next sibling, & 2nd sibling was a dfferent element)')
+                                continue  # This probably isn't a test
+                        else:
+                            warn(f'Skipping paragraph: {p} (no child pre & no next siblings)')
                             continue  # This probably isn't a test
 
                         meta: str = p.contents[0].string
@@ -79,7 +95,7 @@ def make_tests(overwrite: bool = False):
 
                         print(f'Meta: test {number} {"errors" if should_error else "returns"} "{result}" ({meta})')
 
-                        code = p.pre.string.strip()
+                        code = pre.string.strip()
 
                         tests.append(Test(number, meta, result, code, should_error))
 

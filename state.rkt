@@ -3,15 +3,15 @@
 ;;;; ***************************************************
 ;;;; Kyle Kaufman, Benjamin Poulin, Kasey Wei
 ;;;; CSDS 345 Spring 2025
-;;;; Group Project 2: Flow Control Interpreter
+;;;; Group Project 3: Imperative Language Interpreter
 ;;;; ***************************************************
 
-(require "parser/simpleParser.rkt" "binding.rkt" "value.rkt" "common.rkt")
+(require "parser/parser.rkt" "binding.rkt" "value.rkt" "common.rkt")
 (provide interpret interpret-tree)
 
-; Takes a filename, calls parser with the filename, and returns the proper value
-(define (interpret filename)
-  (interpret-tree (parser filename)))
+; Takes a filename, calls specified parser with the filename, and returns the proper value
+(define (interpret filename [parser-str function-parser-str])
+  (interpret-tree (parse filename parser-str)))
 
 ; Takes a syntax tree in list format and returns its return value
 ; Error if tree contains syntax errors
