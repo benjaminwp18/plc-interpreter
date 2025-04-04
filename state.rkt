@@ -60,7 +60,7 @@
   (state-statement-list body
                         (binding-push-layer state)
                         (lambda (s) (next (binding-pop-layer s)))
-                        return
+                        (lambda (v s) (return v (binding-pop-layer s)))
                         (lambda (s) (break (binding-pop-layer s)))
                         (lambda (s) (continue (binding-pop-layer s)))
                         (lambda (e s) (throw e (binding-pop-layer s)))))
