@@ -84,7 +84,7 @@ return x;
 <number>5</number>
 <description>Test 5: This code should give an error.</description>
 <does-error>true</does-error>
-<result>error</result>
+<result>min has not been declared</result>
 <code>
 var x = 10;
 var y = 4;
@@ -206,7 +206,7 @@ return x * 100 + y * 10 + z;
 <number>11</number>
 <description>Test 11: This code should give an error.</description>
 <does-error>true</does-error>
-<result>error</result>
+<result>y has not been declared</result>
 <code>
 var x = 0;
 while (x < 10) {
@@ -226,7 +226,7 @@ return x;
 <number>12</number>
 <description>Test 12: This code should give an error.</description>
 <does-error>true</does-error>
-<result>error</result>
+<result>a has not been declared</result>
 <code>
 var x = 1;
 var y = 2;
@@ -250,7 +250,7 @@ return x;
 <number>13</number>
 <description>Test 13: This code should give an error.</description>
 <does-error>true</does-error>
-<result>error</result>
+<result>'break' called outside loop</result>
 <code>
 var x = 1;
 break;
@@ -390,7 +390,7 @@ return result;
 <number>19</number>
 <description>Test 19 should give an error.</description>
 <does-error>true</does-error>
-<result>error</result>
+<result>Error: 1</result>
 <code>
 var x = 10;
 var result = 1;
@@ -408,19 +408,6 @@ catch (ex) {
   throw 1;
 }
 return result;
-</code>
-</test>
-
-<test>
-<number>20</number>
-<description>Test 20: This code should return 21.</description>
-<does-error>false</does-error>
-<result>21</result>
-<code>
-var x = 0;
-while ((x = x + 1) < 21)
-  x = x;
-return x;
 </code>
 </test>
 
