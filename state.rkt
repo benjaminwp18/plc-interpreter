@@ -41,18 +41,19 @@
   (let ([type (statement-type expr)]
         [body (statement-body expr)])
     (cond
-      [(eq? type 'var)       (state-declare body state next)]
-      [(eq? type '=)         (state-assign  body state next)]
-      [(eq? type 'if)        (state-if      body state next return break continue throw)]
-      [(eq? type 'while)     (state-while   body state next return next continue throw)]
-      [(eq? type 'return)    (value-generic (return-value body) state (lambda (v) (return v state)))]
-      [(eq? type 'break)     (break         state)]
-      [(eq? type 'continue)  (continue      state)]
-      [(eq? type 'throw)     (value-generic (thrown-value body) state (lambda (v) (throw v state)))]
-      [(eq? type 'try)       (state-try     body state next return break continue throw)]
-      [(eq? type 'catch)     (state-catch   body state next return break continue throw)]
-      [(eq? type 'finally)   (state-finally body state next return break continue throw)]
-      [(eq? type 'begin)     (state-block   body state next return break continue throw)]
+      [(eq? type 'var)       (state-declare  body state next)]
+      [(eq? type '=)         (state-assign   body state next)]
+      [(eq? type 'if)        (state-if       body state next return break continue throw)]
+      [(eq? type 'while)     (state-while    body state next return next continue throw)]
+      [(eq? type 'return)    (value-generic  (return-value body) state (lambda (v) (return v state)))]
+      [(eq? type 'break)     (break          state)]
+      [(eq? type 'continue)  (continue       state)]
+      [(eq? type 'throw)     (value-generic  (thrown-value body) state (lambda (v) (throw v state)))]
+      [(eq? type 'try)       (state-try      body state next return break continue throw)]
+      [(eq? type 'catch)     (state-catch    body state next return break continue throw)]
+      [(eq? type 'finally)   (state-finally  body state next return break continue throw)]
+      [(eq? type 'begin)     (state-block    body state next return break continue throw)]
+      [(eq? type 'function)  (state-func-dec body state next)]
       [else                  (error (~a "Invalid syntax: " type))])))
 
 ; Returns state after running a block of statements
@@ -137,6 +138,15 @@
 (define (state-finally expr state next return break continue throw)
   (state-block (finally-body expr) state next return break continue throw))
 
+; Handles function definition by binding function name to closure
+(define (state-func-dec func-dec state next)
+  (let ([idx (binding-layer-idx state)])
+    (next (binding-create (func-name func-dec)
+                          (list (func-formal-params func-dec)
+                                (func-body func-dec)
+                                (lambda (new-state)
+                                  (binding-state-by-layer-idx new-state idx)))
+                          state))))
    
 ; ====================================
 ; Helper functions
@@ -193,3 +203,8 @@
 (define (caught-value expr) (caadr (catch-block expr)))
 (define catch-body cadr)
 (define finally-body car)
+
+; functions
+(define func-name car)
+(define func-formal-params cadr)
+(define func-body caddr)
