@@ -10,8 +10,8 @@
 (provide value-generic)
 
 ; get value of expression, assuming expression uses a binary operator
-(define (value-binary-operator expression state return)
-  (operand1 expression state 
+(define (value-binary-operator expression state return throw)
+  (operand1 expression state
             (lambda (op1)
               (operand2 expression state
                         (lambda (op2)
@@ -28,31 +28,33 @@
                               [(eq? '<  op) (return (cond-lt   op1 op2))]
                               [(eq? '<= op) (return (cond-leq  op1 op2))]
                               [(eq? '>= op) (return (cond-geq  op1 op2))]
-                              [(eq? '&& op) (return (bool-and  op1 op2))]
-                              [(eq? '|| op) (return (bool-or   op1 op2))]
-                              [else (error (~a "Invalid binary operator: " op))])))))))
+                              [(eq? '&& op) (return (bool-and  op1 op2 throw))]
+                              [(eq? '|| op) (return (bool-or   op1 op2 throw))]
+                              [else (throw (~a "Invalid binary operator: " op))]))) throw))
+                          throw))
 
 ; get value of expression, assuming expression uses a unary operator
-(define (value-unary-operator expression state return)
+(define (value-unary-operator expression state return throw)
   (operand1 expression state
             (lambda (op1)
               (let ([op (operator expression)])
                 (cond
-                  [(eq? '- op)  (return (op-unary-minus op1))]
-                  [(eq? '! op)  (return (bool-not       op1))]
-                  [else (error (~a "Invalid unary operator: " op))])))))
+                  [(eq? '- op)  (return (op-unary-minus op1 throw))]
+                  [(eq? '! op)  (return (bool-not       op1 throw))]
+                  [else (throw (~a "Invalid unary operator: " op))])))
+            throw))
 
 ; get the value of expression, regardless of type or operator aryness
-(define (value-generic expression state return)
+(define (value-generic expression state return throw)
   (cond
     [(number? expression) (return expression)]
     [(boolean-literal? expression) (return expression)]
     [(eq? (binding-status expression state) binding-init) (return (binding-lookup expression state))]
     [(eq? (binding-status expression state) binding-uninit) (error (~a expression " has not been assigned a value"))]
     [(not (pair? expression)) (error (~a expression " has not been declared"))]
-    [(has-second-operand? expression) (value-binary-operator expression state return)]
-    [(has-first-operand? expression) (value-unary-operator expression state return)]
-    [else (error (~a "Invalid operator: " (operator expression)))]))
+    [(has-second-operand? expression) (value-binary-operator expression state return throw)]
+    [(has-first-operand? expression) (value-unary-operator expression state return throw)]
+    [else (throw (~a "Invalid operator: " (operator expression)))]))
 
 ; ====================================
 ; Operations
@@ -87,9 +89,9 @@
 ; Create function that runs racket-op on one input but errors if the input fails predicate
 ; op-atom & predicate-atom are atoms that describe the operation & predicate for use in error printing
 (define (typesafe-unary-op racket-op op-atom predicate predicate-atom)
-  (lambda (op1)
+  (lambda (op1 throw)
     (cond
-      [(not (predicate op1)) (error (~a "Invalid operand of operator " op-atom ": expected " predicate-atom ", got " op1))]
+      [(not (predicate op1)) (throw (~a "Invalid operand of operator " op-atom ": expected " predicate-atom ", got " op1))]
       [else (racket-op op1)])))
 
 (define cond-eq  (build-condition equal?))
@@ -109,30 +111,30 @@
 
 ; boolean not using 'true/'false atoms
 ; errors on operand that isn't a boolean atom
-(define (bool-not op1)
+(define (bool-not op1 throw)
   (cond
     [(eq? op1 'true) 'false]
     [(eq? op1 'false) 'true]
-    [else (error "Inversion can only be applied to booleans")]))
+    [else (throw "Inversion can only be applied to booleans")]))
 
 ; boolean and using 'true/'false atoms with explicit short circuiting
 ; errors on operands that aren't boolean atoms
-(define (bool-and op1 op2)
+(define (bool-and op1 op2 throw)
   (cond
     [(eq?        op1 'false)  'false]
-    [(not-equal? op1 'true) (error (~a "And can only be applied to booleans, got " op1))]
+    [(not-equal? op1 'true) (throw (~a "And can only be applied to booleans, got " op1))]
     [(eq?        op2 'false)  'false]
-    [(not-equal? op2 'true) (error (~a "And can only be applied to booleans, got " op2))]
+    [(not-equal? op2 'true) (throw (~a "And can only be applied to booleans, got " op2))]
     [else 'true]))
 
-; boolean and using 'true/'false atoms with explicit short circuiting
+; boolean or using 'true/'false atoms with explicit short circuiting
 ; errors on operands that aren't boolean atoms
-(define (bool-or op1 op2)
+(define (bool-or op1 op2 throw)
   (cond
     [(eq?        op1 'true)  'true]
-    [(not-equal? op1 'false) (error (~a "Or can only be applied to booleans, got " op1))]
+    [(not-equal? op1 'false) (throw (~a "Or can only be applied to booleans, got " op1))]
     [(eq?        op2 'true)  'true]
-    [(not-equal? op2 'false) (error (~a "Or can only be applied to booleans, got " op2))]
+    [(not-equal? op2 'false) (throw (~a "Or can only be applied to booleans, got " op2))]
     [else 'false]))
 
 ; ====================================
@@ -141,8 +143,8 @@
 ; return true if expression is a boolean atom ('true or 'false)
 (define (boolean-literal? expression) (or (eq? expression 'true) (eq? expression 'false)))
 
-(define (operand1 expression state return) (value-generic (first-operand-literal expression) state return))
-(define (operand2 expression state return) (value-generic (second-operand-literal expression) state return))
+(define (operand1 expression state return throw) (value-generic (first-operand-literal expression) state return throw))
+(define (operand2 expression state return throw) (value-generic (second-operand-literal expression) state return throw))
 (define (has-second-operand? expression) (not-null? (cddr expression)))
 (define (has-first-operand? expression) (not-null? (cdr expression)))
 
