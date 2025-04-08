@@ -6,57 +6,78 @@
 ;;;; Group Project 3: Imperative Language Interpreter
 ;;;; ***************************************************
 
-(require "binding.rkt" "common.rkt")
-(provide value-generic)
+(require "binding.rkt" "common.rkt" "state.rkt")
+(provide value-generic value-func-call)
 
 ; get value of expression, assuming expression uses a binary operator
-(define (value-binary-operator expression state return throw)
-  (operand1 expression state
-            (lambda (op1)
-              (operand2 expression state
-                        (lambda (op2)
-                          (let ([op (operator expression)])
-                            (cond
-                              [(eq? '+  op) (return (op-plus   op1 op2))]
-                              [(eq? '-  op) (return (op-minus  op1 op2))]
-                              [(eq? '*  op) (return (op-times  op1 op2))]
-                              [(eq? '/  op) (return (op-divide op1 op2))]
-                              [(eq? '%  op) (return (op-modulo op1 op2))]
-                              [(eq? '== op) (return (cond-eq   op1 op2))]
-                              [(eq? '!= op) (return (cond-neq  op1 op2))]
-                              [(eq? '>  op) (return (cond-gt   op1 op2))]
-                              [(eq? '<  op) (return (cond-lt   op1 op2))]
-                              [(eq? '<= op) (return (cond-leq  op1 op2))]
-                              [(eq? '>= op) (return (cond-geq  op1 op2))]
-                              [(eq? '&& op) (return (bool-and  op1 op2 throw))]
-                              [(eq? '|| op) (return (bool-or   op1 op2 throw))]
-                              [else (throw (~a "Invalid binary operator: " op))]))) throw))
-                          throw))
+(define (value-binary-operator expression state next throw)
+  (value-generic (first-operand-literal expression) state
+                 (lambda (op1)
+                   (value-generic (second-operand-literal expression) state
+                                  (lambda (op2)
+                                    (let ([op (operator expression)])
+                                      (cond
+                                        [(eq? '+  op) (next (op-plus   op1 op2))]
+                                        [(eq? '-  op) (next (op-minus  op1 op2))]
+                                        [(eq? '*  op) (next (op-times  op1 op2))]
+                                        [(eq? '/  op) (next (op-divide op1 op2))]
+                                        [(eq? '%  op) (next (op-modulo op1 op2))]
+                                        [(eq? '== op) (next (cond-eq   op1 op2))]
+                                        [(eq? '!= op) (next (cond-neq  op1 op2))]
+                                        [(eq? '>  op) (next (cond-gt   op1 op2))]
+                                        [(eq? '<  op) (next (cond-lt   op1 op2))]
+                                        [(eq? '<= op) (next (cond-leq  op1 op2))]
+                                        [(eq? '>= op) (next (cond-geq  op1 op2))]
+                                        [(eq? '&& op) (next (bool-and  op1 op2 throw))]
+                                        [(eq? '|| op) (next (bool-or   op1 op2 throw))]
+                                        [else (throw (~a "Invalid binary operator: " op) state)]))) throw))
+                 throw))
 
 ; get value of expression, assuming expression uses a unary operator
-(define (value-unary-operator expression state return throw)
-  (operand1 expression state
-            (lambda (op1)
-              (let ([op (operator expression)])
-                (cond
-                  [(eq? '- op)  (return (op-unary-minus op1 throw))]
-                  [(eq? '! op)  (return (bool-not       op1 throw))]
-                  [else (throw (~a "Invalid unary operator: " op))])))
-            throw))
+(define (value-unary-operator expression state next throw)
+  (value-generic (first-operand-literal expression) state
+                 (lambda (op1)
+                   (let ([op (operator expression)])
+                     (cond
+                       [(eq? '- op)  (next (op-unary-minus op1 throw))]
+                       [(eq? '! op)  (next (bool-not       op1 throw))]
+                       [else (throw (~a "Invalid unary operator: " op))])))
+                 throw))
+
+; get value of a function call
+(define (value-func-call func-call state handle-next next throw)
+  (let ([closure (binding-lookup (func-call-name func-call) state)])
+    (state-block (closure-body closure)
+                 (bind-params (closure-formal-params closure)
+                              (func-call-actual-params func-call)
+                              (binding-push-layer ((closure-scope-func closure) state))
+                              state
+                              throw)
+                 handle-next
+                 (lambda (v) (next v))
+                 (lambda (s) (throw (~a "Break outside of loop in function " (func-call-name func-call))))
+                 (lambda (s) (throw (~a "Continue outside of loop in function " (func-call-name func-call))))
+                 (lambda (e s) (throw e state)))))
 
 ; get the value of expression, regardless of type or operator aryness
-(define (value-generic expression state return throw)
+(define (value-generic expression state next throw)
   (cond
-    [(number? expression) (return expression)]
-    [(boolean-literal? expression) (return expression)]
-    [(eq? (binding-status expression state) binding-init) (return (binding-lookup expression state))]
+    [(number? expression) (next expression)]
+    [(boolean-literal? expression) (next expression)]
+    [(eq? (binding-status expression state) binding-init) (next (binding-lookup expression state))]
     [(eq? (binding-status expression state) binding-uninit) (error (~a expression " has not been assigned a value"))]
     [(not (pair? expression)) (error (~a expression " has not been declared"))]
-    [(has-second-operand? expression) (value-binary-operator expression state return throw)]
-    [(has-first-operand? expression) (value-unary-operator expression state return throw)]
+    [(eq? (expr-start expression) 'funcall)
+     (value-func-call (expr-func-call expression)
+                      state
+                      (lambda (s) (throw (~a "No return statement in function " (func-call-name (expr-func-call expression))) state))
+                      next
+                      throw)]
+    [(has-second-operand? expression) (value-binary-operator expression state next throw)]
+    [(has-first-operand? expression) (value-unary-operator expression state next throw)]
     [else (throw (~a "Invalid operator: " (operator expression)))]))
 
-; ====================================
+; ======================================================
 ; Operations
 
 ; Create binary boolean condition function that returns atom 'true/'false from racket function that
@@ -137,17 +158,25 @@
     [(not-equal? op2 'false) (throw (~a "Or can only be applied to booleans, got " op2))]
     [else 'false]))
 
-; ====================================
-; Abstractions
+; ======================================================
+; Value Abstractions
 
 ; return true if expression is a boolean atom ('true or 'false)
 (define (boolean-literal? expression) (or (eq? expression 'true) (eq? expression 'false)))
 
-(define (operand1 expression state return throw) (value-generic (first-operand-literal expression) state return throw))
-(define (operand2 expression state return throw) (value-generic (second-operand-literal expression) state return throw))
 (define (has-second-operand? expression) (not-null? (cddr expression)))
 (define (has-first-operand? expression) (not-null? (cdr expression)))
 
 (define operator car)
 (define first-operand-literal cadr)
 (define second-operand-literal caddr)
+
+(define first-param car)
+(define next-params cdr)
+(define expr-start car)
+(define expr-func-call cdr)
+(define func-call-name car)
+(define func-call-actual-params cdr)
+(define closure-formal-params car)
+(define closure-body cadr)
+(define closure-scope-func caddr)

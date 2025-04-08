@@ -1,6 +1,6 @@
 #lang racket
 
-(require "state.rkt" "parser/parser.rkt")
+(require "main.rkt" "parser/parser.rkt")
 (require html-parsing)  ; raco pkg install html-parsing
 (require ansi-color)    ; raco pkg install ansi-color
 (provide
