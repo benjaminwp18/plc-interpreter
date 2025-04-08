@@ -8,7 +8,8 @@
 
 (provide binding-lookup binding-status binding-set binding-create
          binding-unbound binding-uninit binding-init empty-stt
-         binding-push-layer binding-pop-layer)
+         binding-push-layer binding-pop-layer
+         binding-layer-idx binding-state-by-layer-idx)
 
 ; Return the state with an empty layer added
 (define (binding-push-layer state)
@@ -17,6 +18,24 @@
 ; Return the state with the first layer removed
 (define (binding-pop-layer state)
   (stt-rest-lyrs state))
+
+; Get the index of top layer in state (global layer is 1 and each layer after adds 1)
+(define (binding-layer-idx state)
+  (if (stt-empty? state)
+      0
+      (+ 1 (binding-layer-idx (stt-rest-lyrs state)))))
+
+; Get the state with all layers above target-lyr-idx removed
+; Errors if target-lyr-idx > (binding-layer-idx state)
+(define (binding-state-by-layer-idx state target-lyr-idx)
+  (let
+      ([cur-lyr-idx (binding-layer-idx state)])
+    (cond
+      [(cur-lyr-idx . = . target-lyr-idx) state]
+      [(cur-lyr-idx . < . target-lyr-idx) (error (~a "Tried to access state layer "
+                                                     target-lyr-idx " when only " cur-lyr-idx
+                                                     " exist."))]
+      [else (binding-state-by-layer-idx (stt-rest-lyrs state) target-lyr-idx)])))
 
 ; Return bound value of name in state
 ; Error if binding does not exist
