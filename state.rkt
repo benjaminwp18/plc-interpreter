@@ -41,14 +41,14 @@
   (let ([type (statement-type expr)]
         [body (statement-body expr)])
     (cond
-      [(eq? type 'var)       (state-declare  body state next)]
-      [(eq? type '=)         (state-assign   body state next)]
+      [(eq? type 'var)       (state-declare  body state next throw)]
+      [(eq? type '=)         (state-assign   body state next throw)]
       [(eq? type 'if)        (state-if       body state next return break continue throw)]
       [(eq? type 'while)     (state-while    body state next return next continue throw)]
-      [(eq? type 'return)    (value-generic  (return-value body) state (lambda (v) (return v state)))]
+      [(eq? type 'return)    (value-generic  (return-value body) state (lambda (v) (return v state)) throw)]
       [(eq? type 'break)     (break          state)]
       [(eq? type 'continue)  (continue       state)]
-      [(eq? type 'throw)     (value-generic  (thrown-value body) state (lambda (v) (throw v state)))]
+      [(eq? type 'throw)     (value-generic  (thrown-value body) state (lambda (v) (throw v state)) throw)]
       [(eq? type 'try)       (state-try      body state next return break continue throw)]
       [(eq? type 'catch)     (state-catch    body state next return break continue throw)]
       [(eq? type 'finally)   (state-finally  body state next return break continue throw)]
@@ -68,19 +68,19 @@
 
 ; Returns state after a declaration
 ; Declaration statements may or may not contain an initialization value
-(define (state-declare expr state next)
+(define (state-declare expr state next throw)
   (if (initializes? expr)
-      (value-generic (value expr) state (lambda (v) (next (binding-create (variable expr) v state))))
+      (value-generic (value expr) state (lambda (v) (next (binding-create (variable expr) v state))) throw)
       (next (binding-create (variable expr) binding-uninit state))))
 
 ; Returns state after an assignment
-(define (state-assign expr state next)
-  (value-generic (value expr) state (lambda (v) (next (binding-set (variable expr) v state)))))
+(define (state-assign expr state next throw)
+  (value-generic (value expr) state (lambda (v) (next (binding-set (variable expr) v state))) throw))
 
 ; Returns state after an if statement
 (define (state-if expr state next return break continue throw)
   (cond
-    [(eq? 'true (value-generic (conditional-expr expr) state identity))
+    [(eq? 'true (value-generic (conditional-expr expr) state identity throw))
      (state-generic (then-expr expr) state next return break continue throw)]
     [(contains-else? expr)
      (state-generic (else-expr expr) state next return break continue throw)]
@@ -88,7 +88,7 @@
 
 ; Returns state after a while statement
 (define (state-while expr state next return break continue throw)
-  (if (eq? 'false (value-generic (conditional-expr expr) state identity))
+  (if (eq? 'false (value-generic (conditional-expr expr) state identity throw))
       (next state)
       (state-generic (body-expr expr)
                      state
