@@ -7,7 +7,7 @@
 ;;;; ***************************************************
 
 (require "parser/parser.rkt" "binding.rkt" "common.rkt")
-(provide interpret interpret-tree state-block)
+(provide interpret interpret-tree)
 
 ; Takes a filename, calls specified parser with the filename, and returns the proper value
 (define (interpret filename [parser-str function-parser-str])
