@@ -20,9 +20,9 @@
                         empty-stt
                         (lambda (s) binding-uninit)
                         (lambda (v) v)
-                        (lambda (s) (error (~a "'break' called outside loop in " (binding-callstack s))))
-                        (lambda (s) (error (~a "'continue' called outside loop in " (binding-callstack s))))
-                        (lambda (e s) (error (~a "Error: " e " in " (binding-callstack s))))))
+                        (lambda (s) (error (~a "'break' called outside loop")))
+                        (lambda (s) (error (~a "'continue' called outside loop")))
+                        (lambda (e s) (error (~a "Error: " e)))))
 
 ; Returns the return value after recursing through a series of statement lists
 (define (state-statement-list tree state next return break continue throw)
@@ -60,7 +60,7 @@
 ; Returns state after running a block of statements
 (define (state-block body state next return break continue throw)
   (state-statement-list body
-                        (binding-push-layer state #f "block")
+                        (binding-push-layer state #f)
                         (lambda (s) (next (binding-pop-layer s)))
                         return
                         (lambda (s) (break (binding-pop-layer s)))
@@ -279,7 +279,7 @@
     (state-block (closure-body closure)
                  (bind-params (closure-formal-params closure)
                               (func-call-actual-params func-call)
-                              (binding-push-layer ((closure-scope-func closure) state) #t (func-call-name func-call))
+                              (binding-push-layer ((closure-scope-func closure) state) #t)
                               state
                               throw)
                  handle-next

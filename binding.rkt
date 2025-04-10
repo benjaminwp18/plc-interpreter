@@ -9,19 +9,11 @@
 (provide binding-lookup binding-status binding-set binding-create
          binding-unbound binding-uninit binding-init empty-stt
          binding-push-layer binding-pop-layer
-         binding-layer-idx binding-state-by-layer-idx
-         binding-callstack)
-
-(define (binding-callstack state)
-  (if (stt-empty? state)
-      ""
-      (~a (lyr-meta-description (stt-first-lyr state))
-          " > "
-          (binding-callstack (stt-rest-lyrs state)))))
+         binding-layer-idx binding-state-by-layer-idx)
 
 ; Return the state with an empty layer added
-(define (binding-push-layer state is-func-layer? layer-description)
-  (cons (empty-lyr (if is-func-layer? meta-func-lyr meta-normal-lyr) layer-description) state))
+(define (binding-push-layer state is-func-layer?)
+  (cons (empty-lyr (if is-func-layer? meta-func-lyr meta-normal-lyr)) state))
 
 ; Return the state with the first layer removed
 (define (binding-pop-layer state)
@@ -123,9 +115,9 @@
 (define meta-func-lyr 'func-layer)
 (define meta-normal-lyr 'normal-layer)
 
-(define (empty-lyr lyr-type lyr-desc)
-  (list (list lyr-type lyr-desc) '() '()))
-(define empty-stt (list (empty-lyr meta-normal-lyr "global scope")))
+(define (empty-lyr lyr-type)
+  (list (list lyr-type) '() '()))
+(define empty-stt (list (empty-lyr meta-normal-lyr)))
 
 (define (lyr-empty? layer)
   (or (null? (lyr-names layer))
@@ -134,7 +126,6 @@
 
 (define lyr-meta car)
 (define (lyr-meta-type layer) (car (lyr-meta layer)))
-(define (lyr-meta-description layer) (cadr (lyr-meta layer)))
 (define lyr-names cadr)
 (define lyr-vals caddr)
 
