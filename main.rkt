@@ -16,13 +16,13 @@
 ; Takes a syntax tree in list format and returns its return value
 ; Error if tree contains syntax errors
 (define (interpret-tree tree)
-  (state-statement-list tree
+  (state-statement-list (append tree '((return (funcall main))))
                         empty-stt
                         (lambda (s) binding-uninit)
                         (lambda (v) v)
-                        (lambda (s) (error "'break' called outside loop"))
-                        (lambda (s) (error "'continue' called outside loop"))
-                        (lambda (e s) (error (~a "Error: " e)))))
+                        (lambda (s) (error (~a "'break' called outside loop in " (binding-callstack s))))
+                        (lambda (s) (error (~a "'continue' called outside loop in " (binding-callstack s))))
+                        (lambda (e s) (error (~a "Error: " e " in " (binding-callstack s))))))
 
 ; Returns the return value after recursing through a series of statement lists
 (define (state-statement-list tree state next return break continue throw)
@@ -60,7 +60,7 @@
 ; Returns state after running a block of statements
 (define (state-block body state next return break continue throw)
   (state-statement-list body
-                        (binding-push-layer state)
+                        (binding-push-layer state #f "block")
                         (lambda (s) (next (binding-pop-layer s)))
                         return
                         (lambda (s) (break (binding-pop-layer s)))
@@ -279,7 +279,7 @@
     (state-block (closure-body closure)
                  (bind-params (closure-formal-params closure)
                               (func-call-actual-params func-call)
-                              (binding-push-layer ((closure-scope-func closure) state))
+                              (binding-push-layer ((closure-scope-func closure) state) #t (func-call-name func-call))
                               state
                               throw)
                  handle-next
@@ -294,8 +294,8 @@
     [(number? expression) (next expression)]
     [(boolean-literal? expression) (next expression)]
     [(eq? (binding-status expression state) binding-init) (next (binding-lookup expression state))]
-    [(eq? (binding-status expression state) binding-uninit) (error (~a expression " has not been assigned a value"))]
-    [(not (pair? expression)) (error (~a expression " has not been declared"))]
+    [(eq? (binding-status expression state) binding-uninit) (throw (~a expression " has not been assigned a value") state)]
+    [(not (pair? expression)) (throw (~a expression " has not been declared") state)]
     [(eq? (expr-start expression) 'funcall)
      (value-func-call (expr-func-call expression)
                       state
