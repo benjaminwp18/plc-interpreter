@@ -22,7 +22,7 @@
     (begin (start-lex filename)
            (let ((parse-tree (program-parse)))
              (end-lex)
-             parse-tree))))
+             (list (list 'function 'main '() parse-tree))))))
 
 ;===============================================
 ; The recursive descent parser

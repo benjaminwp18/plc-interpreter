@@ -7,6 +7,7 @@
          function-parser simple-parser)
 
 ; Parse filename using the parser indicated by parser-str (default function-parser-str)
+; If parser-str is simple-parser-str, result will be wrapped in "function main () { ... }"
 (define (parse filename [parser-str function-parser-str])
   ((parser-str->func parser-str) filename))
 
