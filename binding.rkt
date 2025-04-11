@@ -12,6 +12,9 @@
          binding-layer-idx binding-state-by-layer-idx)
 
 ; Return the state with an empty layer added
+; is-func-layer? should be #t if this a function's scope layer and therefore can have bindings with
+;  the same names as bindings in layers below it.
+; is-func-layer? should be #f for all other layer types (regular blocks, loops, etc.)
 (define (binding-push-layer state is-func-layer?)
   (cons (empty-lyr (if is-func-layer? meta-func-lyr meta-normal-lyr)) state))
 
@@ -39,6 +42,9 @@
 
 ; Return bound value of name in state
 ; Error if binding does not exist
+; fall-thru-func-scopes? (default #t) should be #t for regular lookups (and always outside this file)
+;  and #f when searching to determine if a token is already bound when declaring a new variable, to
+;  enable shadowing.
 (define (binding-lookup name state [fall-thru-func-scopes? #t])
   (if (stt-empty? state)
       (error (~a name " has not been declared"))
@@ -62,6 +68,9 @@
 ; Return binding-unbound if name's binding does not exist in state
 ; Return binding-uninit if it's not initialized
 ; Return binding-init otherwise
+; fall-thru-func-scopes? (default #t) should be #t for regular lookups (and always outside this file)
+;  and #f when searching to determine if a token is already bound when declaring a new variable, to
+;  enable shadowing.
 (define (binding-status name state [fall-thru-func-scopes? #t])
   (with-handlers ([exn:fail? (lambda (v) binding-unbound)])
     (if (equal? (binding-lookup name state fall-thru-func-scopes?) binding-uninit)
@@ -94,6 +103,7 @@
 
 ; Return state with new binding (name, value)
 ; Error if binding already exists
+; Will not check for already existing bindings outside the current function's scope (allows shadowing)
 (define (binding-create name value state)
   (if (equal? (binding-status name state #f) binding-unbound)  ; Don't leave func for binding creation
       (stt-cons-lyr (lyr-create-binding name value (stt-first-lyr state)) (stt-rest-lyrs state))
@@ -103,6 +113,23 @@
 ; Do not check for already existing bindings
 (define (lyr-create-binding name value layer)
   (lyr-cons (list name (box value)) layer))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Abstractions
+
+; The state is structured like:
+; '(                             ; State
+;   (                            ; Layer
+;     (func-layer)               ; Meta (layer type = meta-func-lyr or meta-normal-lyr)
+;     (a b c)                    ; variable names
+;     ((box 1) (box 2) (box 3))  ; variable values
+;   )
+;   (
+;     (normal-layer)
+;     (a x)
+;     ((box 1) (box 2))
+;   )
+; )
 
 (define binding-unbound 'unbound)
 (define binding-uninit '())
