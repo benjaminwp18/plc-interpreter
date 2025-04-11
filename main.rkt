@@ -13,16 +13,40 @@
 (define (interpret filename [parser-str function-parser-str])
   (interpret-tree (parse filename parser-str)))
 
-; Takes a syntax tree in list format and returns its return value
+; Takes a syntax tree in list format and returns the return value of the main method
 ; Error if tree contains syntax errors
 (define (interpret-tree tree)
-  (state-statement-list (append tree '((return (funcall main))))
-                        empty-stt
-                        (lambda (s) binding-uninit)
-                        (lambda (v) v)
-                        (lambda (s) (error (~a "'break' called outside loop")))
-                        (lambda (s) (error (~a "'continue' called outside loop")))
-                        (lambda (e s) (error (~a "Error: " e)))))
+  (state-first-pass-list
+   tree
+   empty-stt
+   (lambda (s) (value-func-call
+                '(main)
+                s
+                (lambda (s) binding-uninit)
+                identity
+                (lambda (e s) (error (~a "Error: " e)))))
+   (lambda (e s) (error (~a "Error in global pass: " e)))))
+
+; Perform the first pass (global scope) of tree
+; Call next on the resulting state
+(define (state-first-pass-list tree state next throw)
+  (if (null? tree)
+    (next state)
+    (state-first-pass-generic (first-statement tree)
+                              state
+                              (lambda (s) (state-first-pass-list (next-statements tree) s next throw))
+                              throw)))
+
+; Evaluate a statement for the first pass (global scope)
+; Allows variable declaration/assignments & func declarations
+; Call next on the resulting state or throw on any other statement type
+(define (state-first-pass-generic expr state next throw)
+  (let ([type (statement-type expr)]
+        [body (statement-body expr)])
+    (cond
+      [(eq? type 'var)      (state-declare  body state next throw)]
+      [(eq? type 'function) (state-func-dec body state next)]
+      [else (throw (~a "Illegal " type " statement in top-level scope: '" expr "'") state)])))
 
 ; Returns the return value after recursing through a series of statement lists
 (define (state-statement-list tree state next return break continue throw)
