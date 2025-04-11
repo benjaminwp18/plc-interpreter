@@ -6,7 +6,7 @@
 ;;;; Group Project 3: Imperative Language Interpreter
 ;;;; ***************************************************
 
-(provide not-null? in-list? not-equal?)
+(provide not-null? in-list? not-equal? same-length?)
 
 ; returns true if a is not null; false otherwise
 (define (not-null? a) (not (null? a)))
@@ -21,3 +21,9 @@
 ; returns true if a does not equal b
 (define (not-equal? a b)
   (not (equal? a b)))
+
+(define (same-length? lis1 lis2)
+  (cond
+    [((null? lis1) . and . (null? lis2)) #t]
+    [((null? lis1) . or . (null? lis2)) #f]
+    [else (same-length? (cdr lis1) (cdr lis2))]))

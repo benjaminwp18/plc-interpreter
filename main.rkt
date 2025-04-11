@@ -277,17 +277,21 @@
 ; get value of a function call
 (define (value-func-call func-call state return next throw)
   (let ([closure (binding-lookup (func-call-name func-call) state)])
-    (state-statement-list (closure-body closure)
-                          (bind-params (closure-formal-params closure)
-                                       (func-call-actual-params func-call)
-                                       (binding-push-layer ((closure-scope-func closure) state) #t)
-                                       state
-                                       throw)
-                          return
-                          next
-                          (lambda (s) (throw (~a "Break outside of loop in function " (func-call-name func-call))))
-                          (lambda (s) (throw (~a "Continue outside of loop in function " (func-call-name func-call))))
-                          (lambda (e s) (throw e state)))))
+    (if (not (same-length? (closure-formal-params closure) (func-call-actual-params func-call)))
+        (throw (~a "Function called with wrong number of parameters. Expected "
+                   (length (closure-formal-params closure)) ", got "
+                   (length (func-call-actual-params func-call)) ".") state)
+        (state-statement-list (closure-body closure)
+                              (bind-params (closure-formal-params closure)
+                                           (func-call-actual-params func-call)
+                                           (binding-push-layer ((closure-scope-func closure) state) #t)
+                                           state
+                                           throw)
+                              return
+                              next
+                              (lambda (s) (throw (~a "Break outside of loop in function " (func-call-name func-call))))
+                              (lambda (s) (throw (~a "Continue outside of loop in function " (func-call-name func-call))))
+                              (lambda (e s) (throw e state))))))
 
 ; get the value of expression, regardless of type or operator aryness
 (define (value-generic expression state next throw)
