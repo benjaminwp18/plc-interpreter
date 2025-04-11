@@ -154,7 +154,8 @@
 
 ; Handles function call that does not return a value
 (define (state-func-call func-call state next return throw)
-  (value-func-call func-call state next (lambda (v) (next state)) throw))
+  ; Ignore values from return & next (this is a value func so next's parameter is a value, not a state!)
+  (value-func-call func-call state (lambda (v) (next state)) (lambda (v) (next state)) throw))
 
 ; Bind actual parameters to formal parameters during a function call
 (define (bind-params formal-params actual-params func-state curr-state throw)
@@ -274,19 +275,19 @@
                  throw))
 
 ; get value of a function call
-(define (value-func-call func-call state handle-next next throw)
+(define (value-func-call func-call state return next throw)
   (let ([closure (binding-lookup (func-call-name func-call) state)])
-    (state-block (closure-body closure)
-                 (bind-params (closure-formal-params closure)
-                              (func-call-actual-params func-call)
-                              (binding-push-layer ((closure-scope-func closure) state) #t)
-                              state
-                              throw)
-                 handle-next
-                 (lambda (v) (next v))
-                 (lambda (s) (throw (~a "Break outside of loop in function " (func-call-name func-call))))
-                 (lambda (s) (throw (~a "Continue outside of loop in function " (func-call-name func-call))))
-                 (lambda (e s) (throw e state)))))
+    (state-statement-list (closure-body closure)
+                          (bind-params (closure-formal-params closure)
+                                       (func-call-actual-params func-call)
+                                       (binding-push-layer ((closure-scope-func closure) state) #t)
+                                       state
+                                       throw)
+                          return
+                          next
+                          (lambda (s) (throw (~a "Break outside of loop in function " (func-call-name func-call))))
+                          (lambda (s) (throw (~a "Continue outside of loop in function " (func-call-name func-call))))
+                          (lambda (e s) (throw e state)))))
 
 ; get the value of expression, regardless of type or operator aryness
 (define (value-generic expression state next throw)
@@ -299,7 +300,7 @@
     [(eq? (expr-start expression) 'funcall)
      (value-func-call (expr-func-call expression)
                       state
-                      (lambda (s) (throw (~a "No return statement in function " (func-call-name (expr-func-call expression))) state))
+                      (lambda (v) (throw (~a "No return statement in function " (func-call-name (expr-func-call expression))) state))
                       next
                       throw)]
     [(has-second-operand? expression) (value-binary-operator expression state next throw)]
