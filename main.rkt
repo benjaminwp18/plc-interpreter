@@ -282,8 +282,8 @@
                                         [(eq? '<  op) (next (cond-lt   op1 op2))]
                                         [(eq? '<= op) (next (cond-leq  op1 op2))]
                                         [(eq? '>= op) (next (cond-geq  op1 op2))]
-                                        [(eq? '&& op) (next (bool-and  op1 op2 throw))]
-                                        [(eq? '|| op) (next (bool-or   op1 op2 throw))]
+                                        [(eq? '&& op) (next (bool-and  op1 op2 (lambda (e) (throw e state))))]
+                                        [(eq? '|| op) (next (bool-or   op1 op2 (lambda (e) (throw e state))))]
                                         [else (throw (~a "Invalid binary operator: " op) state)]))) throw))
                  throw))
 
@@ -293,9 +293,9 @@
                  (lambda (op1)
                    (let ([op (operator expression)])
                      (cond
-                       [(eq? '- op)  (next (op-unary-minus op1 throw))]
-                       [(eq? '! op)  (next (bool-not       op1 throw))]
-                       [else (throw (~a "Invalid unary operator: " op))])))
+                       [(eq? '- op)  (next (op-unary-minus op1))]
+                       [(eq? '! op)  (next (bool-not       op1 (lambda (e) (throw e state))))]
+                       [else (throw (~a "Invalid unary operator: " op) state)])))
                  throw))
 
 ; get value of a function call
@@ -313,8 +313,8 @@
                                            throw)
                               return
                               next
-                              (lambda (s) (throw (~a "Break outside of loop in function " (func-call-name func-call))))
-                              (lambda (s) (throw (~a "Continue outside of loop in function " (func-call-name func-call))))
+                              (lambda (s) (throw (~a "Break outside of loop in function " (func-call-name func-call)) state))
+                              (lambda (s) (throw (~a "Continue outside of loop in function " (func-call-name func-call)) state))
                               (lambda (e s) (throw e state))))))
 
 ; get the value of expression, regardless of type or operator aryness
@@ -333,7 +333,7 @@
                       throw)]
     [(has-second-operand? expression) (value-binary-operator expression state next throw)]
     [(has-first-operand? expression) (value-unary-operator expression state next throw)]
-    [else (throw (~a "Invalid operator: " (operator expression)))]))
+    [else (throw (~a "Invalid operator: " (operator expression)) state)]))
 
 ; ======================================================
 ; Operations
@@ -368,9 +368,9 @@
 ; Create function that runs racket-op on one input but errors if the input fails predicate
 ; op-atom & predicate-atom are atoms that describe the operation & predicate for use in error printing
 (define (typesafe-unary-op racket-op op-atom predicate predicate-atom)
-  (lambda (op1 throw)
+  (lambda (op1)
     (cond
-      [(not (predicate op1)) (throw (~a "Invalid operand of operator " op-atom ": expected " predicate-atom ", got " op1))]
+      [(not (predicate op1)) (error (~a "Invalid operand of operator " op-atom ": expected " predicate-atom ", got " op1))]
       [else (racket-op op1)])))
 
 (define cond-eq  (build-condition equal?))
