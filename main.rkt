@@ -20,16 +20,24 @@
    tree
    empty-stt
    (lambda (s) 
-     (define class-closure (create-class-closure classname s)) ;update once create class closure is added
-     (define method-closure (create-method-closure class-closure 'main)) ;update once create method closure is added
-     (define method-body  (closure-body method-closure))
-     (define method-scope ((closure-scope-func method-closure) s))
-     (define new-scope (binding-push-layer method-scope #t))
-     (state-statement-list method-body new-scope
-                          (lambda (s) binding-uninit)
-                          identity
-                          (lambda (e s) (error (~a "Error: " e)))))
+     (define class-closure (binding-lookup (string->symbol classname) s))
+     (cond
+       [(not class-closure)
+        (error (~a "Error: Class " classname " not found.") s)]
+       [else
+        (define method-closure (binding-lookup class-closure 'main))
+        (cond
+          [(not method-closure)
+           (error (~a "Error: Method main not found in class " classname) s)]
+          [else
+           (state-statement-list (closure-body method-closure)
+                                 s
+                                 (lambda (s) binding-uninit)
+                                 identity
+                                 (lambda (e s) (error (~a "Error: " e))))])]))
    (lambda (e s) (error (~a "Error in global pass: " e)))))
+
+
 
 ; Perform the first pass (global scope) of tree
 ; Call next on the resulting state
