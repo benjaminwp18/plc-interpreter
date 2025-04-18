@@ -20,12 +20,12 @@
    tree
    empty-stt
    (lambda (s) 
-     (define class-closure (binding-lookup (string->symbol classname) s))
+     (define class-closure (binding-lookup (string->symbol classname) s)) ;not sure if this actually wokrs
      (cond
        [(not class-closure)
         (error (~a "Error: Class " classname " not found.") s)]
        [else
-        (define method-closure (binding-lookup class-closure 'main))
+        (define method-closure (binding-lookup class-closure 'main)) ;not sure if this actually wokrs
         (cond
           [(not method-closure)
            (error (~a "Error: Method main not found in class " classname) s)]
@@ -36,8 +36,6 @@
                                  identity
                                  (lambda (e s) (error (~a "Error: " e))))])]))
    (lambda (e s) (error (~a "Error in global pass: " e)))))
-
-
 
 ; Perform the first pass (global scope) of tree
 ; Call next on the resulting state
