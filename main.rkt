@@ -3,14 +3,14 @@
 ;;;; ***************************************************
 ;;;; Kyle Kaufman, Benjamin Poulin, Kasey Wei
 ;;;; CSDS 345 Spring 2025
-;;;; Group Project 3: Imperative Language Interpreter
+;;;; Group Project 4: OO Interpreter
 ;;;; ***************************************************
 
 (require "parser/parser.rkt" "binding.rkt" "common.rkt")
 (provide interpret interpret-tree)
 
 ; Takes a filename, calls specified parser with the filename, and returns the proper value
-(define (interpret filename [parser-str function-parser-str])
+(define (interpret filename [parser-str class-parser-str])
   (interpret-tree (parse filename parser-str)))
 
 ; Takes a syntax tree in list format and returns the return value of the main method

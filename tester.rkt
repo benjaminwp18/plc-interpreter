@@ -11,7 +11,7 @@
 
 ;;;; CODE SOURCE FILE TESTER ;;;;
 ; Test all code files in the tests/src directory
-(define (test-src [parser function-parser-str])
+(define (test-src [parser class-parser-str])
   (for ([filename (list-files "tests/src")])
     (display-test filename (parse filename parser))))
 
@@ -31,7 +31,7 @@
 ; Evaluate the specified test in the specified HTML file in the tests/html directory
 ; Do not catch errors (allows the error stack to be viewed)
 ; Usage: (test-html-single "part1tests" 5)
-(define (test-html-single filename test-number [parser-str function-parser-str])
+(define (test-html-single filename test-number [parser-str class-parser-str])
   (for ([test (get-tests-from-html (~a "tests/html/" filename ".html"))])
     (if (equal? (nt-field 'number test) test-number)
         (begin
@@ -149,7 +149,7 @@
 
 ;;;; OLD NON-NORMALIZED HTML TESTER ;;;;
 ; Test code from all <pre> tags in all HTML files in the tests/raw_html directory
-(define (test-raw-html [parser-str function-parser-str])
+(define (test-raw-html [parser-str class-parser-str])
   (for ([filename (list-files "tests/raw_html")])
     (for ([str (get-pre-contents-from-html filename)])
       (display-test str (parse-str str parser-str)))))
@@ -181,15 +181,12 @@
 ;;;; UTILITIES ;;;;
 ; Get a parse tree from a code string
 ; Uses temporary file tests/temp.j
-(define (parse-str str [parser-str function-parser-str])
+(define (parse-str str [parser-str class-parser-str])
   (begin
     (with-output-to-file "tests/temp.j"
       (lambda () (printf str))
       #:exists 'replace)
-    (let ([parsed (parse "tests/temp.j" parser-str)])
-      (if (equal? parser-str simple-parser-str)
-          parsed  ; TODO: Wrap in main() function
-          parsed))))
+    (parse "tests/temp.j" parser-str)))
 
 ; List the files in a directory
 (define (list-files dir)

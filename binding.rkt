@@ -3,7 +3,7 @@
 ;;;; ***************************************************
 ;;;; Kyle Kaufman, Benjamin Poulin, Kasey Wei
 ;;;; CSDS 345 Spring 2025
-;;;; Group Project 3: Imperative Language Interpreter
+;;;; Group Project 4: OO Interpreter
 ;;;; ***************************************************
 
 (provide binding-lookup binding-status binding-set binding-create
