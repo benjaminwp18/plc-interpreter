@@ -10,22 +10,32 @@
 (provide interpret interpret-tree)
 
 ; Takes a filename, calls specified parser with the filename, and returns the proper value
-(define (interpret filename [parser-str class-parser-str])
-  (interpret-tree (parse filename parser-str)))
+(define (interpret filename classname [parser-str class-parser-str])
+  (interpret-tree (parse filename parser-str) classname))
 
 ; Takes a syntax tree in list format and returns the return value of the main method
 ; Error if tree contains syntax errors
-(define (interpret-tree tree)
+(define (interpret-tree tree classname)
   (state-first-pass-list
    tree
    empty-stt
-   (lambda (s) (value-func-call
-                '(main)
-                s
-                (lambda (s) binding-uninit)
-                identity
-                (lambda (e s) (error (~a "Error: " e)))))
+   (lambda (s)
+     (let* ((class-symbol (string->symbol classname))
+            (class-binding (lookup class-symbol s))) ;; step 1
+       (if (class-closure? class-binding)
+           (let* ((class-env (class-closure-env class-binding)) ; static env
+                  (main-binding (lookup 'main class-env)))       ; step 2
+             (if (method-closure? main-binding)
+                 (value-func-call
+                  '(main)                    ; step 3
+                  s
+                  (lambda (s) binding-uninit)
+                  identity
+                  (lambda (e s) (error (~a "Error during main method call: " e))))
+                 (error "Error: 'main' is not a method")))
+           (error (~a "Error: class " classname " not found")))))
    (lambda (e s) (error (~a "Error in global pass: " e)))))
+
 
 ; Perform the first pass (global scope) of tree
 ; Call next on the resulting state
