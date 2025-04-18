@@ -6,7 +6,7 @@
 ;;;; Group Project 4: OO Interpreter
 ;;;; ***************************************************
 
-(require "parser/parser.rkt" "binding.rkt" "common.rkt")
+(require "parser/parser.rkt" "binding.rkt" "common.rkt" "doubleList.rkt")
 (provide interpret interpret-tree)
 
 ; Takes a filename, calls specified parser with the filename, and returns the proper value
@@ -27,26 +27,43 @@
                 (lambda (e s) (error (~a "Error: " e)))))
    (lambda (e s) (error (~a "Error in global pass: " e)))))
 
-; Perform the first pass (global scope) of tree
-; Call next on the resulting state
 (define (state-first-pass-list tree state next throw)
   (if (null? tree)
-    (next state)
-    (state-first-pass-generic (first-statement tree)
-                              state
-                              (lambda (s) (state-first-pass-list (next-statements tree) s next throw))
+      (next state)
+      (state-class-dec (first-statement tree)
+                       state
+                       (lambda (s) (state-first-pass-list (next-statements tree) s next throw))
+                       throw)))
+
+; Perform the first pass for a class
+; Call next on the resulting state
+(define (state-class-dec class-tree state next throw)
+  (state-class-body (class-dec-body class-tree)
+                    (list (class-dec-super class-tree) empty-dl empty-dl)
+                    (lambda (c) (next (binding-create (class-dec-name class-tree) c state)))
+                    throw))
+
+(define (state-class-body body-tree closure next throw)
+  (if (null? body-tree)
+    (next closure)
+    (state-class-body-statement (first-statement body-tree)
+                              closure
+                              (lambda (c) (state-class-body (next-statements body-tree) c next throw))
                               throw)))
 
-; Evaluate a statement for the first pass (global scope)
-; Allows variable declaration/assignments & func declarations
-; Call next on the resulting state or throw on any other statement type
-(define (state-first-pass-generic expr state next throw)
+(define (state-class-body-statement expr closure next throw)
   (let ([type (statement-type expr)]
         [body (statement-body expr)])
     (cond
-      [(eq? type 'var)      (state-declare  body state next throw)]
-      [(eq? type 'function) (state-func-dec body state next)]
+      [(eq? type 'var)      (state-class-declare-field body closure next throw)]
+      [(eq? type 'function) (state-func-dec body state next)]  ; TODO: MAKE DA METHODS
       [else (throw (~a "Illegal " type " statement in top-level scope: '" expr "'") state)])))
+
+(define (state-class-declare-field declaration-body closure next throw)
+  (next (class-closure-set-instance-fields-init
+         closure (dl-create (variable body)
+                            (if (initializes? declaration-body) (value declaration-body) 0)
+                            (class-closure-instance-fields-init closure)))))
 
 ; Returns the return value after recursing through a series of statement lists
 (define (state-statement-list tree state next return break continue throw)
@@ -301,14 +318,14 @@
 ; get value of a function call
 (define (value-func-call func-call state return next throw)
   (let ([closure (binding-lookup (func-call-name func-call) state)])
-    (if (not (same-length? (closure-formal-params closure) (func-call-actual-params func-call)))
+    (if (not (same-length? (func-closure-formal-params closure) (func-call-actual-params func-call)))
         (throw (~a "Function called with wrong number of parameters. Expected "
-                   (length (closure-formal-params closure)) ", got "
+                   (length (func-closure-formal-params closure)) ", got "
                    (length (func-call-actual-params func-call)) ".") state)
-        (state-statement-list (closure-body closure)
-                              (bind-params (closure-formal-params closure)
+        (state-statement-list (func-closure-body closure)
+                              (bind-params (func-closure-formal-params closure)
                                            (func-call-actual-params func-call)
-                                           (binding-push-layer ((closure-scope-func closure) state) #t)
+                                           (binding-push-layer ((func-closure-scope-func closure) state) #t)
                                            state
                                            throw)
                               return
@@ -435,6 +452,27 @@
 (define expr-func-call cdr)
 (define func-call-name car)
 (define func-call-actual-params cdr)
-(define closure-formal-params car)
-(define closure-body cadr)
-(define closure-scope-func caddr)
+
+(define func-closure-formal-params car)
+(define func-closure-body cadr)
+(define func-closure-scope-func caddr)
+
+(define class-dec-name cadr)
+(define class-dec-extension caddr)
+(define (class-dec-super class-dec)
+  (if (null? (class-dec-extension class-dec))
+      '()
+      (cadr (class-dec-extension class-dec))))
+(define class-dec-body cadddr)
+
+(define class-closure-super car)
+(define class-closure-methods cadr)
+(define (class-closure-set-methods closure new-methods)
+  (list (class-closure-super closure)
+        new-methods
+        (class-closure-instance-fields-init closure)))
+(define class-closure-instance-fields-init caddr)
+(define (class-closure-set-instance-fields-init closure new-instance-fields)
+  (list (class-closure-super closure)
+        (class-closure-methods closure)
+        new-instance-fields))
