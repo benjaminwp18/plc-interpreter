@@ -1137,5 +1137,48 @@ class A {
 </code>
 </test>
 
+<test>
+<number>55</number>
+<description>Test 55: basic class static main</description>
+<does-error>false</does-error>
+<result>5</result>
+<code>
+class A {
+  static function main() {
+    return 5;
+  }
+}
+</code>
+</test>
+
+<test>
+<number>56</number>
+<description>Test 56: basic new instance</description>
+<does-error>false</does-error>
+<result>5</result>
+<code>
+class A {
+  static function main() {
+    var a = new A();
+    return a;
+  }
+}
+</code>
+</test>
+
+<test>
+<number>57</number>
+<description>Test 57: basic new anonymous instance</description>
+<does-error>false</does-error>
+<result>5</result>
+<code>
+class A {
+  static function main() {
+    return new A();
+  }
+}
+</code>
+</test>
+
 </body>
 </html>
