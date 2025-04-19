@@ -65,7 +65,9 @@
                           (if (null? (class-dec-super class-tree))
                               empty-dl
                               (class-closure-instance-fields-init (binding-lookup (class-dec-super class-tree) state)))
-                          empty-dl
+                          (if (null? (class-dec-super class-tree))
+                              empty-dl
+                              (class-closure-methods (binding-lookup (class-dec-super class-tree) state)))
                           (class-dec-name class-tree))
                     (lambda (c) (next (binding-create (class-dec-name class-tree) c state)))
                     throw))
