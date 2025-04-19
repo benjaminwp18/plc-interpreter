@@ -51,10 +51,10 @@
 
 (define (state-class-body body-tree closure next throw)
   (if (null? body-tree)
-    (next closure)
-    (state-class-body-statement (first-statement body-tree)
-                              closure
-                              (lambda (c) (state-class-body (next-statements body-tree) c next throw)))))
+      (next closure)
+      (state-class-body-statement (first-statement body-tree)
+                                  closure
+                                  (lambda (c) (state-class-body (next-statements body-tree) c next throw)))))
 
 (define (state-class-body-statement expr closure next)
   (let ([type (statement-type expr)]
@@ -72,7 +72,7 @@
 
 (define (state-class-declare-method declaration-body closure next)
   (next (class-closure-set-methods
-          closure (dl-create (func-dec-name declaration-body)
+         closure (dl-create (func-dec-name declaration-body)
                             (list (func-dec-formal-params (cons 'this declaration-body))
                                   (func-dec-body declaration-body)
                                   (lambda (new-state)
@@ -333,8 +333,8 @@
 
 (define (value-instance-closure class-name state)
   (list
-    class-name
-    (reverse (dl-vals (class-closure-instance-fields-init (binding-lookup class-name state))))))
+   class-name
+   (reverse (dl-vals (class-closure-instance-fields-init (binding-lookup class-name state))))))
 
 ; get value of a function call
 (define (value-func-call func-call state return next throw)
@@ -503,5 +503,5 @@
 (define instance-closure-field-vals cadr)
 (define (instance-closure-set-field-vals closure new-vals)
   (list
-    (instance-closure-runtime-type closure)
-    new-vals))
+   (instance-closure-runtime-type closure)
+   new-vals))
