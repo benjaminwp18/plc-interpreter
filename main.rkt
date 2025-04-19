@@ -349,14 +349,14 @@
                      (cond
                        [(eq? '- op)   (next (op-unary-minus op1))]
                        [(eq? '! op)   (next (bool-not       op1 (lambda (e) (throw e state))))]
-                       [(eq? 'new op) (next (value-instance-closure op1 state))]
+                       [(eq? 'new op) (next (value-instance-closure op1))]
                        [else (throw (~a "Invalid unary operator: " op) state)])))
                  throw))
 
-(define (value-instance-closure class-name state)
+(define (value-instance-closure class-closure)
   (list
-   class-name
-   (reverse (dl-vals (class-closure-instance-fields-init (binding-lookup class-name state))))))
+   (class-closure-name class-closure)
+   (reverse (dl-vals (class-closure-instance-fields-init class-closure)))))
 
 ; get value of a function call
 (define (value-func-call func-call state return next throw)
