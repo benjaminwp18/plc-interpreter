@@ -20,23 +20,33 @@
    tree
    empty-stt
    (lambda (s)
-     (let* ([class-sym (string->symbol classname)]
-            [class-closure (binding-lookup class-sym s)])
-       (cond
-         [(not class-closure)
-          (error (~a "Error: Class " classname " not found."))]
-         [else
-          (let* ([method-closure (binding-lookup 'main (class-closure))])
-            (cond
-              [(not method-closure)
-               (error (~a "Error: Method main not found in class " classname))]
-              [else
-               (value-func-call
-                '(main)                          
-                s                                
-                (lambda (s) binding-uninit)     
-                identity                        
-                (lambda (e s) (error (~a "Error: " e))))]))]))
+     (define class-sym (string->symbol classname))
+     (define maybe-class
+       (findf
+        (lambda (stmt)
+          (and (list? stmt)
+               (eq? (first stmt) 'class)
+               (eq? (second stmt) class-sym)))
+        tree))
+     (if (not maybe-class)
+         (error (~a "Error: Class " classname " not found."))
+         (let* ([class-body (fourth maybe-class)]
+                [maybe-main
+                 (findf
+                  (lambda (stmt)
+                    (and (list? stmt)
+                         (eq? (first stmt) 'static-function)
+                         (eq? (second stmt) 'main)))
+                  class-body)])
+           (if (not maybe-main)
+               (error (~a "Error: static main() not found in class " classname))
+               (let ([main-body (fourth maybe-main)])
+                 (state-statement-list
+                  main-body
+                  s
+                  (lambda (s) binding-uninit)
+                  identity
+                  (lambda (e s) (error (~a "Error: " e)))))))))
    (lambda (e s) (error (~a "Error in global pass: " e))))))
 
 
