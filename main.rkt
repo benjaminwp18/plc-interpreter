@@ -10,21 +10,40 @@
 (provide interpret interpret-tree)
 
 ; Takes a filename, calls specified parser with the filename, and returns the proper value
-(define (interpret filename [parser-str class-parser-str])
-  (interpret-tree (parse filename parser-str)))
+(define (interpret filename classname [parser-str class-parser-str])
+  (interpret-tree (parse filename parser-str) classname))
 
 ; Takes a syntax tree in list format and returns the return value of the main method
 ; Error if tree contains syntax errors
-(define (interpret-tree tree)
+(define (interpret-tree tree classname)
   (state-first-pass-list
    tree
    empty-stt
-   (lambda (s) (value-func-call
-                '(main)
-                s
-                (lambda (s) binding-uninit)
-                identity
-                (lambda (e s) (error (~a "Error: " e)))))
+   (lambda (s)
+     (let ([maybe-class
+            (findf
+             (lambda (stmt)
+               (and (list? stmt)
+                    (eq? (statement-type stmt) 'class)
+                    (eq? (class-dec-name stmt) (string->symbol classname))))
+             tree)])
+       (if (not maybe-class)
+           (error (~a "Error: Class " classname " not found."))
+           (let ([maybe-main
+                  (findf
+                   (lambda (stmt)
+                     (and (list? stmt)
+                          (eq? (statement-type stmt) 'static-function)
+                          (eq? (func-dec-name stmt) 'main)))
+                   (class-dec-body maybe-class))])
+             (if (not maybe-main)
+                 (error (~a "Error: static main() not found in class " classname))
+                 (state-statement-list
+                  (func-dec-body maybe-main)
+                  s
+                  (lambda (s) binding-uninit)
+                  identity
+                  (lambda (e s) (error (~a "Error in running main: " e)))))))))
    (lambda (e s) (error (~a "Error in global pass: " e)))))
 
 (define (state-first-pass-list tree state next throw)
