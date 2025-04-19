@@ -39,7 +39,7 @@
              (if (not maybe-main)
                  (error (~a "Error: static main() not found in class " classname))
                  (state-statement-list
-                  (func-dec-body maybe-main)
+                  (func-dec-body (statement-body maybe-main))
                   s
                   (lambda (s) binding-uninit)
                   identity
