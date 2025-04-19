@@ -81,6 +81,7 @@
     (cond
       [(eq? type 'var)      (state-class-declare-field body closure next)]
       [(eq? type 'function) (state-class-declare-method body closure next)]
+      [(eq? type 'static-function) (next closure)]
       [else (error (~a "Illegal " type " statement in top-level scope: '" expr "'"))])))
 
 (define (state-class-declare-field declaration-body closure next)
