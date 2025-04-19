@@ -63,7 +63,7 @@
   (state-class-body (class-dec-body class-tree)
                     (list (class-dec-super class-tree)
                           (if (null? (class-dec-super class-tree))
-                              empty-dl
+                              (class-closure-methods (binding-lookup (class-dec-super class-tree) state))
                               (class-closure-instance-fields-init (binding-lookup (class-dec-super class-tree) state)))
                           empty-dl
                           (class-dec-name class-tree))
