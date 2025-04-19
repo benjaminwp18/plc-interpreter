@@ -43,7 +43,9 @@
                   s
                   (lambda (s) binding-uninit)
                   identity
-                  (lambda (e s) (error (~a "Error in running main: " e)))))))))
+                  (lambda (e s) (error (~a "Error in running main: " e)))
+                  (lambda (e s) (error (~a "Unexpected continue in main: " e)))
+                  (lambda (e s) (error (~a "Unhandled throw in main: " e)))))))))
    (lambda (e s) (error (~a "Error in global pass: " e)))))
 
 (define (state-first-pass-list tree state next throw)
