@@ -30,14 +30,13 @@
         tree))
      (if (not maybe-class)
          (error (~a "Error: Class " classname " not found."))
-         (let* ([class-body (fourth maybe-class)]
-                [maybe-main
+         (let ([maybe-main
                  (findf
                   (lambda (stmt)
                     (and (list? stmt)
                          (eq? (statement-type stmt) 'static-function)
                          (eq? (get-func-name stmt) 'main)))
-                  class-body)])
+                  (fourth maybe-class))])
            (if (not maybe-main)
                (error (~a "Error: static main() not found in class " classname))
                (let ([main-body (get-func-body maybe-main)])
