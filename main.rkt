@@ -25,7 +25,7 @@
        (findf
         (lambda (stmt)
           (and (list? stmt)
-               (eq? (get-type stmt) 'class)
+               (eq? (statement-type stmt) 'class)
                (eq? (get-class-name stmt) class-sym)))
         tree))
      (if (not maybe-class)
@@ -35,7 +35,7 @@
                  (findf
                   (lambda (stmt)
                     (and (list? stmt)
-                         (eq? (get-type stmt) 'static-function)
+                         (eq? (statement-type stmt) 'static-function)
                          (eq? (get-func-name stmt) 'main)))
                   class-body)])
            (if (not maybe-main)
@@ -461,7 +461,6 @@
 (define closure-body cadr)
 (define closure-scope-func caddr)
 
-(define get-type car)
 (define get-class-name cadr)
 (define get-class-body cadddr)
 (define get-func-name cadr)
