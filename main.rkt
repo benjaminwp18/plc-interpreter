@@ -46,10 +46,8 @@
                   s
                   (lambda (s) binding-uninit)
                   identity
-                  (lambda (e s) (error (~a "Error: " e)))))))))
+                  (lambda (e s) (error (~a "Error in running main: " e)))))))))
    (lambda (e s) (error (~a "Error in global pass: " e)))))
-
-
 
 ; Perform the first pass (global scope) of tree
 ; Call next on the resulting state
