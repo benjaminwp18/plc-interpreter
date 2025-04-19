@@ -41,7 +41,7 @@
           (color-display (~a "\n" (nt-field 'code test)))
           (foreground-color 'white)
           (display "\n")
-          (display (~a "Result: " (interpret-tree (parse-str (nt-field 'code test) parser-str)))))
+          (display (~a "Result: " (interpret-tree (parse-str (nt-field 'code test) parser-str) (nt-field 'main-class test)))))
         #f)))
 
 ; Run the provided test object from the provided file
@@ -72,8 +72,8 @@
 ; Print the metadata about test from file filename
 (define (display-test-header filename test)
   (display (~a "\n" filename "\tTest " (nt-field 'number test) " (" (nt-field 'description test)
-               ")\n" filename "\t\tExpect " (if (nt-field 'does-error test) "error" "return") ": "
-               (nt-field 'result test))))
+               ")\n" filename "\t\tExpect " (if (nt-field 'does-error test) "error" "return")
+               " main class '" (nt-field 'main-class test) "': " (nt-field 'result test))))
 
 ; Evaluate the given test from file filename
 ; Return #t if it passes or #f if it doesn't
@@ -86,7 +86,7 @@
                      (lambda (v) (begin (foreground-color (if (nt-field 'does-error test) 'yellow 'red))
                                         (color-display (~a "\n" filename "\t\tGot error: " v))
                                         (nt-field 'does-error test)))])
-      (letrec ([result (interpret-tree (parse-str (nt-field 'code test) parser-str))]
+      (letrec ([result (interpret-tree (parse-str (nt-field 'code test) parser-str) (nt-field 'main-class test))]
                [success (if (nt-field 'does-error test)
                             #f
                             (equal? (nt-field 'result test) result))])
@@ -112,7 +112,8 @@
 ;  ('description str)
 ;  ('does-error bool)
 ;  ('result any)
-;  ('code str))
+;  ('code str)
+;  ('main-class str))
 (define (parse-test xexp)
   (cond
     [(null? xexp) '()]
@@ -127,6 +128,7 @@
        [else xexp])]
     [(equal? (car xexp) 'does-error) (list 'does-error (equal? (cadr xexp) "true"))]
     [(equal? (car xexp) 'code) (list 'code (join-xexp-strs (cdr xexp)))]
+    [(equal? (car xexp) 'main-class) (list 'main-class (cadr xexp))]
     [else (parse-test (cdr xexp))]))
 
 ; Get the value of the field named field-atom from the test object test

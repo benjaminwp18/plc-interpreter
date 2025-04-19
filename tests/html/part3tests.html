@@ -10,6 +10,7 @@
 <description>Test 1: A main with code inside. This code should return 10.</description>
 <does-error>false</does-error>
 <result>10</result>
+<main-class>A</main-class>
 <code>
 function main() {
   var x = 10;
@@ -33,6 +34,7 @@ function main() {
 <description>Test 2: A function that uses global variables. This code should return 14.</description>
 <does-error>false</does-error>
 <result>14</result>
+<main-class>A</main-class>
 <code>
 var x = 4;
 var y = 6 + x;
@@ -48,6 +50,7 @@ function main() {
 <description>Test 3: A function that changes global variables. This code should return 45.</description>
 <does-error>false</does-error>
 <result>45</result>
+<main-class>A</main-class>
 <code>
 var x = 1;
 var y = 10;
@@ -68,6 +71,7 @@ function main() {
 <description>Test 4: A recursive function. This code should return 55.</description>
 <does-error>false</does-error>
 <result>55</result>
+<main-class>A</main-class>
 <code>
 function fib(a) {
   if (a == 0)
@@ -89,6 +93,7 @@ function main() {
 <description>Test 5: Functions with multiple parameters that hide global variables. This code should return 1.</description>
 <does-error>false</does-error>
 <result>1</result>
+<main-class>A</main-class>
 <code>
 function min(x, y, z) {
   if (x < y) {
@@ -127,6 +132,7 @@ function main() {
 <description>Test 6: Verifying that your code uses static scoping instead of dynamic scoping. This code should return 115.</description>
 <does-error>false</does-error>
 <result>115</result>
+<main-class>A</main-class>
 <code>
 var a = 10;
 var b = 20;
@@ -153,6 +159,7 @@ function main () {
 <description>Test 7: Boolean parameters and return values. This code should return true.</description>
 <does-error>false</does-error>
 <result>true</result>
+<main-class>A</main-class>
 <code>
 function minmax(a, b, min) {
   if (min && a < b || !min && a > b)
@@ -172,6 +179,7 @@ function main() {
 <description>Test 8: Multiple function calls in an expression. This code should return 20.</description>
 <does-error>false</does-error>
 <result>20</result>
+<main-class>A</main-class>
 <code>
 function fact(n) {
   var f = 1;
@@ -198,6 +206,7 @@ function main() {
 <description>Test 9: A function call in the parameter of a function. This code should return 24.</description>
 <does-error>false</does-error>
 <result>24</result>
+<main-class>A</main-class>
 <code>
 function fact(n) {
   var r = 1;
@@ -219,6 +228,7 @@ function main() {
 <description>Test 10: A function call that ignores the return value. This code should return 2.</description>
 <does-error>false</does-error>
 <result>2</result>
+<main-class>A</main-class>
 <code>
 var count = 0;
 
@@ -241,6 +251,7 @@ function main() {
 <description>Test 11: A function without a return statement. This code should return 35.</description>
 <does-error>false</does-error>
 <result>35</result>
+<main-class>A</main-class>
 <code>
 var x = 0;
 var y = 0;
@@ -266,6 +277,7 @@ function main() {
 <description>Test 12: Mismatched parameters and arguments. This code should give an error.</description>
 <does-error>true</does-error>
 <result>error</result>
+<main-class>A</main-class>
 <code>
 function f(a) {
   return a*a;
@@ -282,6 +294,7 @@ function main() {
 <description>Test 13: Functions inside functions.  This code should return 90.</description>
 <does-error>false</does-error>
 <result>90</result>
+<main-class>A</main-class>
 <code>
 function main() {
   function h() {
@@ -302,6 +315,7 @@ function main() {
 <description>Test 14: Functions inside functions accessing variables outside.  This code should return 69.</description>
 <does-error>false</does-error>
 <result>69</result>
+<main-class>A</main-class>
 <code>
 function collatz(n) {
   var counteven = 0;
@@ -338,6 +352,7 @@ function main() {
 <description>Test 15: Functions inside functions with variables of the same name.  Thus code should return 87.</description>
 <does-error>false</does-error>
 <result>87</result>
+<main-class>A</main-class>
 <code>
 function f(n) {
   var a;
@@ -375,6 +390,7 @@ function main() {
 <description>Test 16: Functions inside functions inside functions.  This code should return 64.</description>
 <does-error>false</does-error>
 <result>64</result>
+<main-class>A</main-class>
 <code>
 function main() {
   var result;
@@ -411,6 +427,7 @@ function main() {
 <description>Test 17: Functions inside functions accessing out of scope variables.  This code should return an error with b out of scope.</description>
 <does-error>true</does-error>
 <result>error</result>
+<main-class>A</main-class>
 <code>
 function f(x) {
   function g(x) {
@@ -438,6 +455,7 @@ function main() {
 <description>Test 18: try/catch finally, but no exception thrown.  This code should return 125.</description>
 <does-error>false</does-error>
 <result>125</result>
+<main-class>A</main-class>
 <code>
 function divide(x, y) {
   if (y == 0)
@@ -468,6 +486,7 @@ function main() {
 <description>Test 19: Throwing an exception inside a function.  This code should return 100.</description>
 <does-error>false</does-error>
 <result>100</result>
+<main-class>A</main-class>
 <code>
 function divide(x, y) {
   if (y == 0)
@@ -498,6 +517,7 @@ function main() {
 <description>Test 20: Throwing an exception from a function.  This code should return 2000400.</description>
 <does-error>false</does-error>
 <result>2000400</result>
+<main-class>A</main-class>
 <code>
 function divide(x, y) {
   if (y == 0)
@@ -537,6 +557,7 @@ function divide(x, y) {
 <description>Test 21: Call-by-reference test. This code should return 3421.</description>
 <does-error>false</does-error>
 <result>3421</result>
+<main-class>A</main-class>
 <code>
 function swap1(x, y) {
   var temp = x;
@@ -567,6 +588,7 @@ function main() {
 <description>Test 22: Assignment side effects with function calls. This code should return 20332.</description>
 <does-error>false</does-error>
 <result>20332</result>
+<main-class>A</main-class>
 <code>
 var x;
 
@@ -600,6 +622,7 @@ function main() {
 <description>Test 23: Mixture of call-by-value and call-by-reference.  This code should return 21.</description>
 <does-error>false</does-error>
 <result>21</result>
+<main-class>A</main-class>
 <code>
 function gcd(a, &b) {
   if (a < b) {
