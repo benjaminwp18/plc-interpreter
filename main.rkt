@@ -21,25 +21,25 @@
    empty-stt
    (lambda (s)
      (let ([maybe-class
-       (findf
-        (lambda (stmt)
-          (and (list? stmt)
-               (eq? (statement-type stmt) 'class)
-               (eq? (get-class-name stmt) (string->symbol classname))))
-        tree)])
-     (if (not maybe-class)
-         (error (~a "Error: Class " classname " not found."))
-         (let ([maybe-main
-                 (findf
-                  (lambda (stmt)
-                    (and (list? stmt)
-                         (eq? (statement-type stmt) 'static-function)
-                         (eq? (func-dec-name stmt) 'main)))
-                  (fourth maybe-class))])
-           (if (not maybe-main)
-               (error (~a "Error: static main() not found in class " classname))
+            (findf
+             (lambda (stmt)
+               (and (list? stmt)
+                    (eq? (statement-type stmt) 'class)
+                    (eq? (get-class-name stmt) (string->symbol classname))))
+             tree)])
+       (if (not maybe-class)
+           (error (~a "Error: Class " classname " not found."))
+           (let ([maybe-main
+                  (findf
+                   (lambda (stmt)
+                     (and (list? stmt)
+                          (eq? (statement-type stmt) 'static-function)
+                          (eq? (func-dec-name stmt) 'main)))
+                   (fourth maybe-class))])
+             (if (not maybe-main)
+                 (error (~a "Error: static main() not found in class " classname))
                  (state-statement-list
-                   (func-dec-body maybe-main)
+                  (func-dec-body maybe-main)
                   s
                   (lambda (s) binding-uninit)
                   identity
@@ -50,11 +50,11 @@
 ; Call next on the resulting state
 (define (state-first-pass-list tree state next throw)
   (if (null? tree)
-    (next state)
-    (state-first-pass-generic (first-statement tree)
-                              state
-                              (lambda (s) (state-first-pass-list (next-statements tree) s next throw))
-                              throw)))
+      (next state)
+      (state-first-pass-generic (first-statement tree)
+                                state
+                                (lambda (s) (state-first-pass-list (next-statements tree) s next throw))
+                                throw)))
 
 ; Evaluate a statement for the first pass (global scope)
 ; Allows variable declaration/assignments & func declarations
