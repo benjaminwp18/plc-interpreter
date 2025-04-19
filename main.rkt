@@ -37,9 +37,15 @@
 
 ; Perform the first pass for a class
 ; Call next on the resulting state
+; Fields: (my fields in reverse order, my super's fields)
 (define (state-class-dec class-tree state next throw)
   (state-class-body (class-dec-body class-tree)
-                    (list (class-dec-super class-tree) empty-dl empty-dl)
+                    (list (class-dec-super class-tree)
+                          (if (null? (class-dec-super class-tree))
+                              empty-dl
+                              (class-closure-instance-fields-init (binding-lookup (class-dec-super class-tree) state)))
+                          empty-dl
+                          (class-dec-name class-tree))
                     (lambda (c) (next (binding-create (class-dec-name class-tree) c state)))
                     throw))
 
@@ -48,22 +54,31 @@
     (next closure)
     (state-class-body-statement (first-statement body-tree)
                               closure
-                              (lambda (c) (state-class-body (next-statements body-tree) c next throw))
-                              throw)))
+                              (lambda (c) (state-class-body (next-statements body-tree) c next throw)))))
 
-(define (state-class-body-statement expr closure next throw)
+(define (state-class-body-statement expr closure next)
   (let ([type (statement-type expr)]
         [body (statement-body expr)])
     (cond
-      [(eq? type 'var)      (state-class-declare-field body closure next throw)]
-      [(eq? type 'function) (state-func-dec body state next)]  ; TODO: MAKE DA METHODS
-      [else (throw (~a "Illegal " type " statement in top-level scope: '" expr "'") state)])))
+      [(eq? type 'var)      (state-class-declare-field body closure next)]
+      [(eq? type 'function) (state-class-declare-method body closure next)]
+      [else (error (~a "Illegal " type " statement in top-level scope: '" expr "'"))])))
 
-(define (state-class-declare-field declaration-body closure next throw)
+(define (state-class-declare-field declaration-body closure next)
   (next (class-closure-set-instance-fields-init
-         closure (dl-create (variable body)
+         closure (dl-create (variable declaration-body)
                             (if (initializes? declaration-body) (value declaration-body) 0)
                             (class-closure-instance-fields-init closure)))))
+
+(define (state-class-declare-method declaration-body closure next)
+  (next (class-closure-set-methods
+          closure (dl-create (func-dec-name declaration-body)
+                            (list (func-dec-formal-params (cons 'this declaration-body))
+                                  (func-dec-body declaration-body)
+                                  (lambda (new-state)
+                                    (binding-state-by-layer-idx new-state 1))
+                                  (lambda (new-state) (class-closure-name closure)))
+                            (class-closure-methods closure)))))
 
 ; Returns the return value after recursing through a series of statement lists
 (define (state-statement-list tree state next return break continue throw)
@@ -310,10 +325,16 @@
                  (lambda (op1)
                    (let ([op (operator expression)])
                      (cond
-                       [(eq? '- op)  (next (op-unary-minus op1))]
-                       [(eq? '! op)  (next (bool-not       op1 (lambda (e) (throw e state))))]
+                       [(eq? '- op)   (next (op-unary-minus op1))]
+                       [(eq? '! op)   (next (bool-not       op1 (lambda (e) (throw e state))))]
+                       [(eq? 'new op) (next (value-instance-closure op1 state))]
                        [else (throw (~a "Invalid unary operator: " op) state)])))
                  throw))
+
+(define (value-instance-closure class-name state)
+  (list
+    class-name
+    (reverse (dl-vals (class-closure-instance-fields-init (binding-lookup class-name state))))))
 
 ; get value of a function call
 (define (value-func-call func-call state return next throw)
@@ -476,3 +497,11 @@
   (list (class-closure-super closure)
         (class-closure-methods closure)
         new-instance-fields))
+(define class-closure-name cadddr)
+
+(define instance-closure-runtime-type car)
+(define instance-closure-field-vals cadr)
+(define (instance-closure-set-field-vals closure new-vals)
+  (list
+    (instance-closure-runtime-type closure)
+    new-vals))

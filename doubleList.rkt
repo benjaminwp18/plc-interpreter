@@ -6,7 +6,7 @@
 ;;;; Group Project 4: OO Interpreter
 ;;;; ***************************************************
 
-(provide dl-lookup dl-create dl-unbound dl-unbound empty-dl dl-empty?)
+(provide dl-lookup dl-create dl-unbound dl-unbound empty-dl dl-empty? dl-names dl-vals)
 
 ; Return bound value of name in double-list
 ; Error if binding does not exist
@@ -28,26 +28,26 @@
 
 (define empty-dl '(() ()))
 (define (dl-empty? double-list)
-  (or (null? (dl-entry-names double-list))
-      (null? (dl-entry-vals double-list))))
+  (or (null? (dl-names double-list))
+      (null? (dl-vals double-list))))
 
-(define dl-entry-names car)
-(define dl-entry-vals cadr)
+(define dl-names car)
+(define dl-vals cadr)
 (define dl-entry-name car)
 (define dl-entry-val cadr)
 (define (dl-first-name double-list)
-  (car (dl-entry-names double-list)))
+  (car (dl-names double-list)))
 (define (dl-first-val double-list)
-  (car (dl-entry-vals double-list)))
+  (car (dl-vals double-list)))
 (define (dl-car double-list)
   (list
-   (car (dl-entry-names double-list))
-   (car (dl-entry-vals double-list))))
+   (car (dl-names double-list))
+   (car (dl-vals double-list))))
 (define (dl-cdr double-list)
   (list
-   (cdr (dl-entry-names double-list))
-   (cdr (dl-entry-vals double-list))))
+   (cdr (dl-names double-list))
+   (cdr (dl-vals double-list))))
 (define (dl-cons pair double-list)
   (list
-   (cons (dl-entry-name pair) (dl-entry-names double-list))
-   (cons (dl-entry-val pair) (dl-entry-vals double-list))))
+   (cons (dl-entry-name pair) (dl-names double-list))
+   (cons (dl-entry-val pair) (dl-vals double-list))))
