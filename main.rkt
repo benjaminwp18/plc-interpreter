@@ -35,17 +35,16 @@
                   (lambda (stmt)
                     (and (list? stmt)
                          (eq? (statement-type stmt) 'static-function)
-                         (eq? (get-func-name stmt) 'main)))
+                         (eq? (func-dec-name stmt) 'main)))
                   (fourth maybe-class))])
            (if (not maybe-main)
                (error (~a "Error: static main() not found in class " classname))
-               (let ([main-body (get-func-body maybe-main)])
                  (state-statement-list
-                  main-body
+                   (func-dec-body maybe-main)
                   s
                   (lambda (s) binding-uninit)
                   identity
-                  (lambda (e s) (error (~a "Error in running main: " e)))))))))
+                  (lambda (e s) (error (~a "Error in running main: " e))))))))
    (lambda (e s) (error (~a "Error in global pass: " e)))))
 
 ; Perform the first pass (global scope) of tree
@@ -462,6 +461,4 @@
 
 (define get-class-name cadr)
 (define get-class-body cadddr)
-(define get-func-name cadr)
 (define get-func-params caddr)
-(define get-func-body cadddr)
