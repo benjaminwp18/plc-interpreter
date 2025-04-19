@@ -25,8 +25,8 @@
        (findf
         (lambda (stmt)
           (and (list? stmt)
-               (eq? (first stmt) 'class)
-               (eq? (second stmt) class-sym)))
+               (eq? (get-type stmt) 'class)
+               (eq? (get-class-name stmt) class-sym)))
         tree))
      (if (not maybe-class)
          (error (~a "Error: Class " classname " not found."))
@@ -35,12 +35,12 @@
                  (findf
                   (lambda (stmt)
                     (and (list? stmt)
-                         (eq? (first stmt) 'static-function)
-                         (eq? (second stmt) 'main)))
+                         (eq? (get-type stmt) 'static-function)
+                         (eq? (get-func-name stmt) 'main)))
                   class-body)])
            (if (not maybe-main)
                (error (~a "Error: static main() not found in class " classname))
-               (let ([main-body (fourth maybe-main)])
+               (let ([main-body (get-func-body maybe-main)])
                  (state-statement-list
                   main-body
                   s
@@ -460,3 +460,10 @@
 (define closure-formal-params car)
 (define closure-body cadr)
 (define closure-scope-func caddr)
+
+(define get-type car)
+(define get-class-name cadr)
+(define get-class-body cadddr)
+(define get-func-name cadr)
+(define get-func-params caddr)
+(define get-func-body cadddr)
