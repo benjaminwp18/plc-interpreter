@@ -34,7 +34,7 @@
                    (lambda (stmt)
                      (and (list? stmt)
                           (eq? (statement-type stmt) 'static-function)
-                          (eq? (func-dec-name stmt) 'main)))
+                          (eq? (func-dec-name (statement-body stmt)) 'main)))
                    (class-dec-body maybe-class))])
              (if (not maybe-main)
                  (error (~a "Error: static main() not found in class " classname))
