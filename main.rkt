@@ -20,13 +20,12 @@
    tree
    empty-stt
    (lambda (s)
-     (define class-sym (string->symbol classname))
      (define maybe-class
        (findf
         (lambda (stmt)
           (and (list? stmt)
                (eq? (statement-type stmt) 'class)
-               (eq? (get-class-name stmt) class-sym)))
+               (eq? (get-class-name stmt) (string->symbol classname))))
         tree))
      (if (not maybe-class)
          (error (~a "Error: Class " classname " not found."))
