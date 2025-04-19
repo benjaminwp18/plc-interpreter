@@ -460,4 +460,3 @@
 
 (define get-class-name cadr)
 (define get-class-body cadddr)
-(define get-func-params caddr)
