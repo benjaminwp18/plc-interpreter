@@ -20,13 +20,13 @@
    tree
    empty-stt
    (lambda (s)
-     (define maybe-class
+     (let ([maybe-class
        (findf
         (lambda (stmt)
           (and (list? stmt)
                (eq? (statement-type stmt) 'class)
                (eq? (get-class-name stmt) (string->symbol classname))))
-        tree))
+        tree)])
      (if (not maybe-class)
          (error (~a "Error: Class " classname " not found."))
          (let ([maybe-main
@@ -43,7 +43,7 @@
                   s
                   (lambda (s) binding-uninit)
                   identity
-                  (lambda (e s) (error (~a "Error in running main: " e))))))))
+                  (lambda (e s) (error (~a "Error in running main: " e)))))))))
    (lambda (e s) (error (~a "Error in global pass: " e)))))
 
 ; Perform the first pass (global scope) of tree
