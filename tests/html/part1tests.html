@@ -10,6 +10,7 @@
 <description>Test 1: This code should return 150.</description>
 <does-error>false</does-error>
 <result>150</result>
+<main-class>A</main-class>
 <code>
 return 150;
 </code>
@@ -20,6 +21,7 @@ return 150;
 <description>Test 2: This code should return -4.</description>
 <does-error>false</does-error>
 <result>-4</result>
+<main-class>A</main-class>
 <code>
 return 6 * (8 + (5 % 3)) / 11 - 9;
 </code>
@@ -30,6 +32,7 @@ return 6 * (8 + (5 % 3)) / 11 - 9;
 <description>Test 3: This code should return 10.</description>
 <does-error>false</does-error>
 <result>10</result>
+<main-class>A</main-class>
 <code>
 var z;
 z = 10;
@@ -42,6 +45,7 @@ return z;
 <description>Test 4: This code should return 16.</description>
 <does-error>false</does-error>
 <result>16</result>
+<main-class>A</main-class>
 <code>
 var x = (5 * 7 - 3) / 2;
 return x;
@@ -53,6 +57,7 @@ return x;
 <description>Test 5: This code should return 220.</description>
 <does-error>false</does-error>
 <result>220</result>
+<main-class>A</main-class>
 <code>
 var x = 10;
 var y = 12 + x;
@@ -65,6 +70,7 @@ return x * y;
 <description>Test 6: This code should return 5.</description>
 <does-error>false</does-error>
 <result>5</result>
+<main-class>A</main-class>
 <code>
 var x = 5;
 var y = 6;
@@ -82,6 +88,7 @@ return m;
 <description>Test 7: This code should return 6.</description>
 <does-error>false</does-error>
 <result>6</result>
+<main-class>A</main-class>
 <code>
 var x = 5;
 var y = 6;
@@ -99,6 +106,7 @@ return m;
 <description>Test 8: This code should return 10.</description>
 <does-error>false</does-error>
 <result>10</result>
+<main-class>A</main-class>
 <code>
 var x = 5;
 var y = 6;
@@ -113,6 +121,7 @@ return x;
 <description>Test 9: This code should return 5.</description>
 <does-error>false</does-error>
 <result>5</result>
+<main-class>A</main-class>
 <code>
 var x = 5;
 var y = 6;
@@ -127,6 +136,7 @@ return x;
 <description>Test 10: This code should return -39.</description>
 <does-error>false</does-error>
 <result>-39</result>
+<main-class>A</main-class>
 <code>
 return 6 * -(4 * 2) + 9;
 </code>
@@ -137,6 +147,7 @@ return 6 * -(4 * 2) + 9;
 <description>Test 11: This code should give an error (using before declaring).</description>
 <does-error>true</does-error>
 <result>y has not been declared</result>
+<main-class>A</main-class>
 <code>
 var x = 1;
 y = 10 + x;
@@ -149,6 +160,7 @@ return y;
 <description>Test 12: This code should give an error (using before declaring).</description>
 <does-error>true</does-error>
 <result>x has not been declared</result>
+<main-class>A</main-class>
 <code>
 var y;
 y = x;
@@ -161,6 +173,7 @@ return y;
 <description>Test 13: This code should give an error (using before assigning).</description>
 <does-error>true</does-error>
 <result>x has not been assigned a value</result>
+<main-class>A</main-class>
 <code>
 var x;
 var y;
@@ -174,6 +187,7 @@ return x;
 <description>Test 14: This code should give an error (redefining).  This is not a required error, but it would be nice if you could catch these.</description>
 <does-error>true</does-error>
 <result>Binding for x already exists</result>
+<main-class>A</main-class>
 <code>
 var x = 10;
 var y = 20;
@@ -187,6 +201,7 @@ return x;
 <description>Test 15: This code should return true (not #t).</description>
 <does-error>false</does-error>
 <result>true</result>
+<main-class>A</main-class>
 <code>
 return (10 > 20) || (5 - 6 < 10) && true;
 </code>
@@ -197,6 +212,7 @@ return (10 > 20) || (5 - 6 < 10) && true;
 <description>Test 16: This code should return 100.</description>
 <does-error>false</does-error>
 <result>100</result>
+<main-class>A</main-class>
 <code>
 var x = 10;
 var y = 20;
@@ -212,6 +228,7 @@ else
 <description>Test 17: This code should return false (not #f).</description>
 <does-error>false</does-error>
 <result>false</result>
+<main-class>A</main-class>
 <code>
 var x = 100 % 2 == 0;
 var y = 10 >= 20;
@@ -229,6 +246,7 @@ return z;
 <description>Test 18: This code should return true.</description>
 <does-error>false</does-error>
 <result>true</result>
+<main-class>A</main-class>
 <code>
 var x = 10;
 var y = 20;
@@ -246,6 +264,7 @@ return z;
 <description>Test 19: This code should return 128.</description>
 <does-error>false</does-error>
 <result>128</result>
+<main-class>A</main-class>
 <code>
 var x = 2;
 while (x < 100)
@@ -259,6 +278,7 @@ return x;
 <description>Test 20: This code should return 12;</description>
 <does-error>false</does-error>
 <result>12</result>
+<main-class>A</main-class>
 <code>
 var x = 20;
 var y = 128;

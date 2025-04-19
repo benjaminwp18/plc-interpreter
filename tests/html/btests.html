@@ -10,6 +10,7 @@
 <description>Factorial</description>
 <does-error>false</does-error>
 <result>120</result>
+<main-class>A</main-class>
 <code>
 var n = 5;
 var result = 1;
@@ -26,6 +27,7 @@ return result;
 <description>Nested try/catch</description>
 <does-error>false</does-error>
 <result>12345</result>
+<main-class>A</main-class>
 <code>
 try {
     try {
@@ -53,6 +55,7 @@ catch (e3) {
 <description>Throw in catch; return in finally</description>
 <does-error>false</does-error>
 <result>12345</result>
+<main-class>A</main-class>
 <code>
 try {
     throw 10;
@@ -71,6 +74,7 @@ finally {
 <description>Nested try/catch/finally</description>
 <does-error>false</does-error>
 <result>12345</result>
+<main-class>A</main-class>
 <code>
 try {
     try {
@@ -99,6 +103,7 @@ finally {
 <description>Finally returns override try returns</description>
 <does-error>false</does-error>
 <result>12345</result>
+<main-class>A</main-class>
 <code>
 try {
     return 10;
@@ -114,6 +119,7 @@ finally {
 <description>Finally returns override try & catch returns</description>
 <does-error>false</does-error>
 <result>12345</result>
+<main-class>A</main-class>
 <code>
 try {
     throw 10;
@@ -133,6 +139,7 @@ finally {
 <description>If finally doesn't return, try return should fall thru</description>
 <does-error>false</does-error>
 <result>12345</result>
+<main-class>A</main-class>
 <code>
 try {
     return 12345;

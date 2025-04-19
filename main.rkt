@@ -6,7 +6,7 @@
 ;;;; Group Project 4: OO Interpreter
 ;;;; ***************************************************
 
-(require "parser/parser.rkt" "binding.rkt" "common.rkt")
+(require "parser/parser.rkt" "binding.rkt" "common.rkt" "doubleList.rkt")
 (provide interpret interpret-tree)
 
 ; Takes a filename, calls specified parser with the filename, and returns the proper value
@@ -25,7 +25,7 @@
              (lambda (stmt)
                (and (list? stmt)
                     (eq? (statement-type stmt) 'class)
-                    (eq? (get-class-name stmt) (string->symbol classname))))
+                    (eq? (class-dec-name stmt) (string->symbol classname))))
              tree)])
        (if (not maybe-class)
            (error (~a "Error: Class " classname " not found."))
@@ -34,38 +34,75 @@
                    (lambda (stmt)
                      (and (list? stmt)
                           (eq? (statement-type stmt) 'static-function)
-                          (eq? (func-dec-name stmt) 'main)))
-                   (fourth maybe-class))])
+                          (eq? (func-dec-name (statement-body stmt)) 'main)))
+                   (class-dec-body maybe-class))])
              (if (not maybe-main)
                  (error (~a "Error: static main() not found in class " classname))
                  (state-statement-list
-                  (func-dec-body maybe-main)
+                  (func-dec-body (statement-body maybe-main))
                   s
                   (lambda (s) binding-uninit)
                   identity
-                  (lambda (e s) (error (~a "Error in running main: " e)))))))))
+                  (lambda (e s) (error (~a "Error in running main: " e)))
+                  (lambda (e s) (error (~a "Unexpected continue in main: " e)))
+                  (lambda (e s) (error (~a "Unhandled throw in main: " e)))))))))
    (lambda (e s) (error (~a "Error in global pass: " e)))))
 
-; Perform the first pass (global scope) of tree
-; Call next on the resulting state
 (define (state-first-pass-list tree state next throw)
   (if (null? tree)
       (next state)
-      (state-first-pass-generic (first-statement tree)
-                                state
-                                (lambda (s) (state-first-pass-list (next-statements tree) s next throw))
-                                throw)))
+      (state-class-dec (first-statement tree)
+                       state
+                       (lambda (s) (state-first-pass-list (next-statements tree) s next throw))
+                       throw)))
 
-; Evaluate a statement for the first pass (global scope)
-; Allows variable declaration/assignments & func declarations
-; Call next on the resulting state or throw on any other statement type
-(define (state-first-pass-generic expr state next throw)
+; Perform the first pass for a class
+; Call next on the resulting state
+; Fields: (my fields in reverse order, my super's fields)
+(define (state-class-dec class-tree state next throw)
+  (state-class-body (class-dec-body class-tree)
+                    (list (class-dec-super class-tree)
+                          (if (null? (class-dec-super class-tree))
+                              empty-dl
+                              (class-closure-instance-fields-init (binding-lookup (class-dec-super class-tree) state)))
+                          (if (null? (class-dec-super class-tree))
+                              empty-dl
+                              (class-closure-methods (binding-lookup (class-dec-super class-tree) state)))
+                          (class-dec-name class-tree))
+                    (lambda (c) (next (binding-create (class-dec-name class-tree) c state)))
+                    throw))
+
+(define (state-class-body body-tree closure next throw)
+  (if (null? body-tree)
+      (next closure)
+      (state-class-body-statement (first-statement body-tree)
+                                  closure
+                                  (lambda (c) (state-class-body (next-statements body-tree) c next throw)))))
+
+(define (state-class-body-statement expr closure next)
   (let ([type (statement-type expr)]
         [body (statement-body expr)])
     (cond
-      [(eq? type 'var)      (state-declare  body state next throw)]
-      [(eq? type 'function) (state-func-dec body state next)]
-      [else (throw (~a "Illegal " type " statement in top-level scope: '" expr "'") state)])))
+      [(eq? type 'var)      (state-class-declare-field body closure next)]
+      [(eq? type 'function) (state-class-declare-method body closure next)]
+      [(eq? type 'static-function) (next closure)]
+      [else (error (~a "Illegal " type " statement in top-level scope: '" expr "'"))])))
+
+(define (state-class-declare-field declaration-body closure next)
+  (next (class-closure-set-instance-fields-init
+         closure (dl-create (variable declaration-body)
+                            (if (initializes? declaration-body) (value declaration-body) 0)
+                            (class-closure-instance-fields-init closure)))))
+
+(define (state-class-declare-method declaration-body closure next)
+  (next (class-closure-set-methods
+         closure (dl-create (func-dec-name declaration-body)
+                            (list (func-dec-formal-params (cons 'this declaration-body))
+                                  (func-dec-body declaration-body)
+                                  (lambda (new-state)
+                                    (binding-state-by-layer-idx new-state 1))
+                                  (lambda (new-state) (class-closure-name closure)))
+                            (class-closure-methods closure)))))
 
 ; Returns the return value after recursing through a series of statement lists
 (define (state-statement-list tree state next return break continue throw)
@@ -312,22 +349,28 @@
                  (lambda (op1)
                    (let ([op (operator expression)])
                      (cond
-                       [(eq? '- op)  (next (op-unary-minus op1))]
-                       [(eq? '! op)  (next (bool-not       op1 (lambda (e) (throw e state))))]
+                       [(eq? '- op)   (next (op-unary-minus op1))]
+                       [(eq? '! op)   (next (bool-not       op1 (lambda (e) (throw e state))))]
+                       [(eq? 'new op) (next (value-instance-closure op1))]
                        [else (throw (~a "Invalid unary operator: " op) state)])))
                  throw))
+
+(define (value-instance-closure class-closure)
+  (list
+   (class-closure-name class-closure)
+   (reverse (dl-vals (class-closure-instance-fields-init class-closure)))))
 
 ; get value of a function call
 (define (value-func-call func-call state return next throw)
   (let ([closure (binding-lookup (func-call-name func-call) state)])
-    (if (not (same-length? (closure-formal-params closure) (func-call-actual-params func-call)))
+    (if (not (same-length? (func-closure-formal-params closure) (func-call-actual-params func-call)))
         (throw (~a "Function called with wrong number of parameters. Expected "
-                   (length (closure-formal-params closure)) ", got "
+                   (length (func-closure-formal-params closure)) ", got "
                    (length (func-call-actual-params func-call)) ".") state)
-        (state-statement-list (closure-body closure)
-                              (bind-params (closure-formal-params closure)
+        (state-statement-list (func-closure-body closure)
+                              (bind-params (func-closure-formal-params closure)
                                            (func-call-actual-params func-call)
-                                           (binding-push-layer ((closure-scope-func closure) state) #t)
+                                           (binding-push-layer ((func-closure-scope-func closure) state) #t)
                                            state
                                            throw)
                               return
@@ -454,9 +497,35 @@
 (define expr-func-call cdr)
 (define func-call-name car)
 (define func-call-actual-params cdr)
-(define closure-formal-params car)
-(define closure-body cadr)
-(define closure-scope-func caddr)
 
-(define get-class-name cadr)
-(define get-class-body cadddr)
+(define func-closure-formal-params car)
+(define func-closure-body cadr)
+(define func-closure-scope-func caddr)
+
+(define class-dec-name cadr)
+(define class-dec-extension caddr)
+(define (class-dec-super class-dec)
+  (if (null? (class-dec-extension class-dec))
+      '()
+      (cadr (class-dec-extension class-dec))))
+(define class-dec-body cadddr)
+
+(define class-closure-super car)
+(define class-closure-methods cadr)
+(define (class-closure-set-methods closure new-methods)
+  (list (class-closure-super closure)
+        new-methods
+        (class-closure-instance-fields-init closure)))
+(define class-closure-instance-fields-init caddr)
+(define (class-closure-set-instance-fields-init closure new-instance-fields)
+  (list (class-closure-super closure)
+        (class-closure-methods closure)
+        new-instance-fields))
+(define class-closure-name cadddr)
+
+(define instance-closure-runtime-type car)
+(define instance-closure-field-vals cadr)
+(define (instance-closure-set-field-vals closure new-vals)
+  (list
+   (instance-closure-runtime-type closure)
+   new-vals))

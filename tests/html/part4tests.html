@@ -10,6 +10,7 @@
 <description>Test 1 should return 15 when running A's main.</description>
 <does-error>false</does-error>
 <result>15</result>
+<main-class>A</main-class>
 <code>
 class A {
   var x = 5;
@@ -28,6 +29,7 @@ class A {
 <description>Test 2 should return 12 when running A's main.</description>
 <does-error>false</does-error>
 <result>12</result>
+<main-class>A</main-class>
 <code>
 class A {
 
@@ -48,6 +50,7 @@ class A {
 <description>Test 3 should return 125 when running A's main.</description>
 <does-error>false</does-error>
 <result>125</result>
+<main-class>A</main-class>
 <code>
 class A {
 
@@ -70,6 +73,7 @@ class A {
 <description>Test 4 should return 36 when running A's main.</description>
 <does-error>false</does-error>
 <result>36</result>
+<main-class>A</main-class>
 <code>
 class A {
 
@@ -99,6 +103,7 @@ class A {
 <description>Test 5 should return 54 when running A's main.</description>
 <does-error>false</does-error>
 <result>54</result>
+<main-class>A</main-class>
 <code>
 class A {
 
@@ -132,6 +137,7 @@ class A {
 <description>Test 6 should return 110 when running A's main.</description>
 <does-error>false</does-error>
 <result>110</result>
+<main-class>A</main-class>
 <code>
 class A {
 
@@ -154,6 +160,7 @@ class A {
 <description>Test 7 should return 26 when running C's main.</description>
 <does-error>false</does-error>
 <result>26</result>
+<main-class>C</main-class>
 <code>
 class A {
   var x = 1;
@@ -201,6 +208,7 @@ class C extends B {
 <description>Test 8 should return 117 when running Square's main.</description>
 <does-error>false</does-error>
 <result>117</result>
+<main-class>Square</main-class>
 <code>
 class Shape {
   function area() {
@@ -266,6 +274,7 @@ class Square extends Rectangle {
 <description>Test 9 should return 32 when running Square's main.</description>
 <does-error>false</does-error>
 <result>32</result>
+<main-class>Square</main-class>
 <code>
 class Shape {
   function area() {
@@ -329,7 +338,7 @@ class Square extends Rectangle {
       max = s2;
     if (s3.largerThan(max))
       max = s3;
- 
+
     return max.area();
   }
 }
@@ -341,6 +350,7 @@ class Square extends Rectangle {
 <description>Test 10 should return 15 when running List's main.</description>
 <does-error>false</does-error>
 <result>15</result>
+<main-class>List</main-class>
 <code>
 class List {
   var val;
@@ -379,6 +389,7 @@ class List {
 <description>Test 11 should return 123456 when running List's main</description>
 <does-error>false</does-error>
 <result>123456</result>
+<main-class>List</main-class>
 <code>
 class List {
   var val;
@@ -447,6 +458,7 @@ class List {
 <description>Test 12 should return 5285 when running List's main.</description>
 <does-error>false</does-error>
 <result>5285</result>
+<main-class>List</main-class>
 <code>
 class List {
   var val;
@@ -505,6 +517,7 @@ class List {
 <description>Test 13 should return -716 when run with C's main.</description>
 <does-error>false</does-error>
 <result>-716</result>
+<main-class>C</main-class>
 <code>
 class A {
   var count = 0;
@@ -545,7 +558,7 @@ class B extends A {
 }
 
 class C {
-  function main() {
+  static function main() {
     var x;
     var b;
 
@@ -575,6 +588,7 @@ class C {
 <description>Test 21 should return 530 when running A's main.</description>
 <does-error>false</does-error>
 <result>530</result>
+<main-class>A</main-class>
 <code>
 class A {
 
@@ -600,6 +614,7 @@ class A {
 <description>Test 22 should return 66 when running B's main.</description>
 <does-error>false</does-error>
 <result>66</result>
+<main-class>B</main-class>
 <code>
 class A {
   var x = 10;
@@ -635,6 +650,7 @@ class B extends A {
 <description>Test 23 should return 1026 when running A's main.</description>
 <does-error>false</does-error>
 <result>1026</result>
+<main-class>A</main-class>
 <code>
 class A {
   var x = 5;
@@ -667,6 +683,7 @@ class A {
 <description>Test 24 should return 2045 when running A's main.</description>
 <does-error>false</does-error>
 <result>2045</result>
+<main-class>A</main-class>
 <code>
 class A {
   var x = 0;
@@ -693,6 +710,7 @@ class A {
 <description>Test 31 should return 20 when running A's main.</description>
 <does-error>false</does-error>
 <result>20</result>
+<main-class>A</main-class>
 <code>
 class A {
   static var x = 10;
@@ -708,6 +726,7 @@ class A {
 <description>Test 32 should return 530 when running B's main.</description>
 <does-error>false</does-error>
 <result>530</result>
+<main-class>B</main-class>
 <code>
 class A {
   static var x = 10;
@@ -738,6 +757,7 @@ class B extends A {
 <description>Test 33 should return 615 when running B's main.</description>
 <does-error>false</does-error>
 <result>615</result>
+<main-class>A</main-class>
 <code>
 class A {
   static var a = 1;
@@ -770,6 +790,7 @@ class C {
 <description>Test 34 should return 16 when running Box's main.</description>
 <does-error>false</does-error>
 <result>16</result>
+<main-class>Box</main-class>
 <code>
 class Box {
   static var countAccesses = 0;
@@ -803,6 +824,7 @@ class Box {
 <description>Test 35 should return 100 when running A's main.</description>
 <does-error>false</does-error>
 <result>100</result>
+<main-class>A</main-class>
 <code>
 class A {
   static function divide(x, y) {
@@ -843,6 +865,7 @@ class Zero {
 <description>Test 36 should return 420 when running A's main.</description>
 <does-error>false</does-error>
 <result>420</result>
+<main-class>A</main-class>
 <code>
 class A {
   static function divide(x, y) {
@@ -892,6 +915,7 @@ class Zero {
 <description>Test 37 should throw an error for "no this".</description>
 <does-error>true</does-error>
 <result>error</result>
+<main-class>A</main-class>
 <code>
 class A {
   var x = 10;
@@ -917,6 +941,7 @@ class A {
 <description>Test 41 should return 300 when running Circle's main.</description>
 <does-error>false</does-error>
 <result>300</result>
+<main-class>Circle</main-class>
 <code>
 class Shape {
   function area();
@@ -954,6 +979,7 @@ class Circle extends Shape {
 <description>Test 42 should give an error for a non-overridden abstract method.</description>
 <does-error>true</does-error>
 <result>error</result>
+<main-class>Circle</main-class>
 <code>
 class Shape {
   function area();
@@ -987,6 +1013,7 @@ class Circle extends Shape {
 <description>Test 51 should return 417 when running Square's main.</description>
 <does-error>false</does-error>
 <result>417</result>
+<main-class>Square</main-class>
 <code>
 class Shape {
   function area() {
@@ -1060,6 +1087,7 @@ class Square extends Rectangle {
 <description>Test 52 should return 10 when running A's main.</description>
 <does-error>false</does-error>
 <result>10</result>
+<main-class>A</main-class>
 <code>
 class A {
   var x;
@@ -1081,6 +1109,7 @@ class A {
 <description>Test 53 should return 48 when running B's main.</description>
 <does-error>false</does-error>
 <result>48</result>
+<main-class>A</main-class>
 <code>
 class A {
   var x;
@@ -1112,6 +1141,7 @@ class B extends A {
 <description>Test 54 should return 1629 when running A's main.</description>
 <does-error>false</does-error>
 <result>1629</result>
+<main-class>A</main-class>
 <code>
 class A {
   var x = 1;
@@ -1132,6 +1162,52 @@ class A {
     var b = new A(20, 5);
 
     return (a.x + a.y + a.z) * 100 + (b.x + b.y + b.z);
+  }
+}
+</code>
+</test>
+
+<test>
+<number>55</number>
+<description>Test 55: basic class static main</description>
+<does-error>false</does-error>
+<result>5</result>
+<main-class>A</main-class>
+<code>
+class A {
+  static function main() {
+    return 5;
+  }
+}
+</code>
+</test>
+
+<test>
+<number>56</number>
+<description>Test 56: basic new instance</description>
+<does-error>false</does-error>
+<result>5</result>
+<main-class>A</main-class>
+<code>
+class A {
+  static function main() {
+    var a = new A();
+    return a;
+  }
+}
+</code>
+</test>
+
+<test>
+<number>57</number>
+<description>Test 57: basic new anonymous instance</description>
+<does-error>false</does-error>
+<result>5</result>
+<main-class>A</main-class>
+<code>
+class A {
+  static function main() {
+    return new A();
   }
 }
 </code>
