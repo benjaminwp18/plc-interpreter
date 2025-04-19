@@ -47,7 +47,7 @@
                   (lambda (s) binding-uninit)
                   identity
                   (lambda (e s) (error (~a "Error: " e)))))))))
-   (lambda (e s) (error (~a "Error in global pass: " e))))))
+   (lambda (e s) (error (~a "Error in global pass: " e)))))
 
 
 
