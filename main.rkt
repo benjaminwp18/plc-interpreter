@@ -20,12 +20,12 @@
    tree
    empty-stt
    (lambda (s) 
-     (define class-closure (binding-lookup (string->symbol classname) s)) ;not sure if this actually wokrs
+     (define class-closure (binding-lookup (string->symbol classname) s)) ;not sure if this actually works
      (cond
        [(not class-closure)
         (error (~a "Error: Class " classname " not found.") s)]
        [else
-        (define method-closure (binding-lookup class-closure 'main)) ;not sure if this actually wokrs
+        (define method-closure (binding-lookup class-closure 'main)) ;not sure if this actually works
         (cond
           [(not method-closure)
            (error (~a "Error: Method main not found in class " classname) s)]
