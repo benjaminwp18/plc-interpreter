@@ -1213,5 +1213,23 @@ class A {
 </code>
 </test>
 
+<test>
+<number>58</number>
+<description>Test 58: basic field access</description>
+<does-error>false</does-error>
+<result>5</result>
+<main-class>A</main-class>
+<code>
+class A {
+  var x = 5;
+
+  static function main() {
+    var a = new A();
+    return a.x;
+  }
+}
+</code>
+</test>
+
 </body>
 </html>

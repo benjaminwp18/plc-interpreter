@@ -6,15 +6,22 @@
 ;;;; Group Project 4: OO Interpreter
 ;;;; ***************************************************
 
-(provide dl-lookup dl-create dl-unbound dl-unbound empty-dl dl-empty? dl-names dl-vals)
+(provide dl-lookup dl-get-reverse-index dl-create dl-unbound
+         dl-unbound empty-dl dl-empty? dl-names dl-vals)
 
 ; Return bound value of name in double-list
-; Error if binding does not exist
+; Return dl-unbound if it isn't found
 (define (dl-lookup name double-list)
   (cond
     [(dl-empty? double-list) dl-unbound]
     [(eq? (dl-first-name double-list) name) (dl-first-val double-list)]
     [else (dl-lookup name (dl-cdr double-list))]))
+
+(define (dl-get-reverse-index name double-list)
+  (cond
+    [(dl-empty? double-list) dl-unbound]
+    [(eq? (dl-first-name double-list) name) (length double-list)]
+    [else (dl-get-reverse-index name (dl-cdr double-list))]))
 
 (define dl-unbound '())
 

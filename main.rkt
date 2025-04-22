@@ -324,27 +324,32 @@
 
 ; get value of expression, assuming expression uses a binary operator
 (define (value-binary-operator expression state next throw ctt rtt)
-  (value-generic (first-operand-literal expression) state
-                 (lambda (op1)
-                   (value-generic (second-operand-literal expression) state
-                                  (lambda (op2)
-                                    (let ([op (operator expression)])
-                                      (cond
-                                        [(eq? '+  op) (next (op-plus   op1 op2))]
-                                        [(eq? '-  op) (next (op-minus  op1 op2))]
-                                        [(eq? '*  op) (next (op-times  op1 op2))]
-                                        [(eq? '/  op) (next (op-divide op1 op2))]
-                                        [(eq? '%  op) (next (op-modulo op1 op2))]
-                                        [(eq? '== op) (next (cond-eq   op1 op2))]
-                                        [(eq? '!= op) (next (cond-neq  op1 op2))]
-                                        [(eq? '>  op) (next (cond-gt   op1 op2))]
-                                        [(eq? '<  op) (next (cond-lt   op1 op2))]
-                                        [(eq? '<= op) (next (cond-leq  op1 op2))]
-                                        [(eq? '>= op) (next (cond-geq  op1 op2))]
-                                        [(eq? '&& op) (next (bool-and  op1 op2 (lambda (e) (throw e state))))]
-                                        [(eq? '|| op) (next (bool-or   op1 op2 (lambda (e) (throw e state))))]
-                                        [else (throw (~a "Invalid binary operator: " op) state)]))) throw ctt rtt))
-                 throw ctt rtt))
+  (if (equal? (operator expression) 'dot)
+      (value-get-instance-field (first-operand-literal expression) (second-operand-literal expression)
+                                state next throw
+                                ; runtime type == compile time type for regular variables
+                                (instance-closure-runtime-type (binding-lookup (first-operand-literal expression) state)))
+      (value-generic (first-operand-literal expression) state
+                     (lambda (op1)
+                       (value-generic (second-operand-literal expression) state
+                                      (lambda (op2)
+                                        (let ([op (operator expression)])
+                                          (cond
+                                            [(eq? '+  op) (next (op-plus   op1 op2))]
+                                            [(eq? '-  op) (next (op-minus  op1 op2))]
+                                            [(eq? '*  op) (next (op-times  op1 op2))]
+                                            [(eq? '/  op) (next (op-divide op1 op2))]
+                                            [(eq? '%  op) (next (op-modulo op1 op2))]
+                                            [(eq? '== op) (next (cond-eq   op1 op2))]
+                                            [(eq? '!= op) (next (cond-neq  op1 op2))]
+                                            [(eq? '>  op) (next (cond-gt   op1 op2))]
+                                            [(eq? '<  op) (next (cond-lt   op1 op2))]
+                                            [(eq? '<= op) (next (cond-leq  op1 op2))]
+                                            [(eq? '>= op) (next (cond-geq  op1 op2))]
+                                            [(eq? '&& op) (next (bool-and  op1 op2 (lambda (e) (throw e state))))]
+                                            [(eq? '|| op) (next (bool-or   op1 op2 (lambda (e) (throw e state))))]
+                                            [else (throw (~a "Invalid binary operator: " op) state)]))) throw ctt rtt))
+                     throw ctt rtt)))
 
 ; get value of expression, assuming expression uses a unary operator
 (define (value-unary-operator expression state next throw ctt rtt)
@@ -389,6 +394,8 @@
     [(boolean-literal? expression) (next expression)]
     [(eq? (binding-status expression state) binding-init) (next (binding-lookup expression state))]
     [(eq? (binding-status expression state) binding-uninit) (throw (~a expression " has not been assigned a value") state)]
+    [(not-equal? (value-instance-field-index expression state ctt) dl-unbound)
+     (value-get-instance-field 'this expression state next throw ctt)]
     [(not (pair? expression)) (throw (~a expression " has not been declared") state)]
     [(eq? (expr-start expression) 'funcall)
      (value-func-call (expr-func-call expression)
@@ -399,6 +406,18 @@
     [(has-second-operand? expression) (value-binary-operator expression state next throw ctt rtt)]
     [(has-first-operand? expression) (value-unary-operator expression state next throw ctt rtt)]
     [else (throw (~a "Invalid operator: " (operator expression)) state)]))
+
+(define (value-get-instance-field instance-atom field-atom state next throw ctt)
+  (cond
+    [(not-equal? (binding-status instance-atom state) binding-init) (throw (~a "Class instance " instance-atom " does not exist" state))]
+    [(equal? (value-instance-field-index field-atom state ctt) dl-unbound) (throw (~a "Field " field-atom " could not be found in class " ctt) state)]
+    [else (next (list-ref (instance-closure-field-vals (binding-lookup instance-atom state))
+                          (value-instance-field-index field-atom state ctt)))]))
+
+(define (value-instance-field-index field-atom state ctt)
+  (if (equal? ctt no-type)
+    dl-unbound
+    (dl-get-reverse-index field-atom (class-closure-instance-fields-init (binding-lookup ctt state)))))
 
 ; ======================================================
 ; Operations
@@ -518,12 +537,14 @@
 (define (class-closure-set-methods closure new-methods)
   (list (class-closure-super closure)
         new-methods
-        (class-closure-instance-fields-init closure)))
+        (class-closure-instance-fields-init closure))
+        (class-closure-name closure))
 (define class-closure-instance-fields-init caddr)
 (define (class-closure-set-instance-fields-init closure new-instance-fields)
   (list (class-closure-super closure)
         (class-closure-methods closure)
-        new-instance-fields))
+        new-instance-fields
+        (class-closure-name closure)))
 (define class-closure-name cadddr)
 
 (define instance-closure-runtime-type car)
