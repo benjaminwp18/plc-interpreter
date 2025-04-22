@@ -365,15 +365,15 @@
 
 ; get value of a function call
 (define (value-func-call func-call state return next throw ctt rtt)
-  (let ([closure (method-closure func-call state throw ctt rtt)]
-        [obj (calling-obj func-call)])
+  (let ([closure  (method-closure func-call state throw ctt rtt)]
+        [obj-expr (calling-obj func-call)])
     (if (not (same-length? (excluding-this (func-closure-formal-params closure)) (func-call-actual-params func-call)))
         (throw (~a "Function called with wrong number of parameters. Expected "
                    (length (excluding-this (func-closure-formal-params closure))) ", got "
                    (length (func-call-actual-params func-call)) ".") state)
         (state-statement-list (func-closure-body closure)
                               (bind-params (func-closure-formal-params closure)
-                                           (cons obj (func-call-actual-params func-call)) ; TODO: handle obj-instance-closure because value-generic is called in bind-params
+                                           (cons obj-expr (func-call-actual-params func-call))
                                            (binding-push-layer ((func-closure-scope-func closure) state) #t)
                                            state
                                            throw
@@ -385,24 +385,22 @@
                               (lambda (s) (throw (~a "Continue outside of loop in function " (func-call-name func-call)) state))
                               (lambda (e s) (throw e state))
                               (method-closure-type-func closure)
-                              (instance-closure-runtime-type (value-generic obj state identity throw ctt rtt))))))
+                              (instance-closure-runtime-type (value-generic obj-expr state identity throw ctt rtt))))))
 
+; gets object expression to the left of the dot (e.g. (new A) or a)
 (define (calling-obj func-call)
   (let ([func-name (func-call-name func-call)])
     (if (list? func-name)
         (dot-calling-obj func-name)
         'this)))
 
+; gets closure of the method being called by looking in the calling object's runtime type class closure
 (define (method-closure func-call state throw ctt rtt)
   (let ([func-name (func-call-name func-call)])
     (if (list? func-name)
         (dl-lookup (dot-name func-name)
                    (class-closure-methods (binding-lookup (instance-closure-runtime-type (value-generic (calling-obj func-call) state identity throw ctt rtt)) state)))
         (dl-lookup func-name (class-closure-methods (binding-lookup (instance-closure-runtime-type (binding-lookup 'this state)) state))))))
-
-
-(define dot-calling-obj cadr)
-(define dot-name caddr)
 
 ; get the value of expression, regardless of type or operator aryness
 (define (value-generic expression state next throw ctt rtt)
@@ -522,6 +520,9 @@
 (define expr-func-call cdr)
 (define func-call-name car)
 (define func-call-actual-params cdr)
+
+(define dot-calling-obj cadr)
+(define dot-name caddr)
 
 (define func-closure-formal-params car)
 (define func-closure-body cadr)
