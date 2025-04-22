@@ -361,15 +361,16 @@
    (reverse (dl-vals (class-closure-instance-fields-init class-closure)))))
 
 ; get value of a function call
-(define (value-func-call func-call state return next throw)
-  (let ([closure (binding-lookup (func-call-name func-call) state)])
+(define (value-func-call func-call state return next throw ctt)
+  (let ([closure (method-closure func-call state ctt)]
+        [obj     (calling-obj func-call state)])
     (if (not (same-length? (func-closure-formal-params closure) (func-call-actual-params func-call)))
         (throw (~a "Function called with wrong number of parameters. Expected "
                    (length (func-closure-formal-params closure)) ", got "
                    (length (func-call-actual-params func-call)) ".") state)
         (state-statement-list (func-closure-body closure)
                               (bind-params (func-closure-formal-params closure)
-                                           (func-call-actual-params func-call)
+                                           (cons obj (func-call-actual-params func-call))
                                            (binding-push-layer ((func-closure-scope-func closure) state) #t)
                                            state
                                            throw)
@@ -377,10 +378,27 @@
                               next
                               (lambda (s) (throw (~a "Break outside of loop in function " (func-call-name func-call)) state))
                               (lambda (s) (throw (~a "Continue outside of loop in function " (func-call-name func-call)) state))
-                              (lambda (e s) (throw e state))))))
+                              (lambda (e s) (throw e state))
+                              (method-closure-type-func closure)))))
+
+(define (calling-obj func-call state)
+  (let ([func-name (func-call-name func-call)])
+    (if (list? func-name)
+        (dot-calling-obj func-name)
+        (binding-lookup 'this state)))) ; TODO: handle "this" doesn't exist
+
+(define (method-closure func-call state)
+  (let ([func-name (func-call-name func-call)])
+    (if (list? func-name)
+        (dl-lookup (dot-name func-name)
+                   (class-closure-methods (binding-lookup (instance-closure-runtime-type (binding-lookup (dot-calling-obj func-name) state)) state)))
+        (dl-lookup func-name (class-closure-methods (binding-lookup (binding-lookup 'this state))))))) ; assuming "this" is bound to an atom
+
+(define dot-calling-obj cadr)
+(define dot-name caddr)
 
 ; get the value of expression, regardless of type or operator aryness
-(define (value-generic expression state next throw)
+(define (value-generic expression state next throw ctt)
   (cond
     [(number? expression) (next expression)]
     [(boolean-literal? expression) (next expression)]
@@ -392,7 +410,8 @@
                       state
                       (lambda (v) (throw (~a "No return statement in function " (func-call-name (expr-func-call expression))) state))
                       next
-                      throw)]
+                      throw
+                      ctt)]
     [(has-second-operand? expression) (value-binary-operator expression state next throw)]
     [(has-first-operand? expression) (value-unary-operator expression state next throw)]
     [else (throw (~a "Invalid operator: " (operator expression)) state)]))
@@ -501,6 +520,7 @@
 (define func-closure-formal-params car)
 (define func-closure-body cadr)
 (define func-closure-scope-func caddr)
+(define method-closure-type-func cadddr)
 
 (define class-dec-name cadr)
 (define class-dec-extension caddr)
