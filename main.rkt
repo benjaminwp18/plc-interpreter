@@ -99,7 +99,7 @@
 (define (state-class-declare-method declaration-body closure next ctt rtt)
   (next (class-closure-set-methods
          closure (dl-create (func-dec-name declaration-body)
-                            (list (func-dec-formal-params (cons 'this declaration-body))
+                            (list (cons 'this (func-dec-formal-params declaration-body))
                                   (func-dec-body declaration-body)
                                   (lambda (new-state)
                                     (binding-state-by-layer-idx new-state 1))
@@ -365,37 +365,41 @@
 
 ; get value of a function call
 (define (value-func-call func-call state return next throw ctt rtt)
-  (let ([closure (method-closure func-call state ctt)]
-        [obj     (calling-obj func-call state)])
-    (if (not (same-length? (func-closure-formal-params closure) (func-call-actual-params func-call)))
+  (let ([closure (method-closure func-call state throw ctt rtt)]
+        [obj (calling-obj func-call)])
+    (if (not (same-length? (excluding-this (func-closure-formal-params closure)) (func-call-actual-params func-call)))
         (throw (~a "Function called with wrong number of parameters. Expected "
-                   (length (func-closure-formal-params closure)) ", got "
+                   (length (excluding-this (func-closure-formal-params closure))) ", got "
                    (length (func-call-actual-params func-call)) ".") state)
         (state-statement-list (func-closure-body closure)
                               (bind-params (func-closure-formal-params closure)
-                                           (cons obj (func-call-actual-params func-call))
+                                           (cons obj (func-call-actual-params func-call)) ; TODO: handle obj-instance-closure because value-generic is called in bind-params
                                            (binding-push-layer ((func-closure-scope-func closure) state) #t)
                                            state
-                                           throw)
+                                           throw
+                                           ctt
+                                           rtt)
                               return
                               next
                               (lambda (s) (throw (~a "Break outside of loop in function " (func-call-name func-call)) state))
                               (lambda (s) (throw (~a "Continue outside of loop in function " (func-call-name func-call)) state))
-                              (lambda (e s) (throw e state)) ctt rtt
-                              (method-closure-type-func closure)))))
+                              (lambda (e s) (throw e state))
+                              (method-closure-type-func closure)
+                              (instance-closure-runtime-type (value-generic obj state identity throw ctt rtt))))))
 
-(define (calling-obj func-call state)
+(define (calling-obj func-call)
   (let ([func-name (func-call-name func-call)])
     (if (list? func-name)
         (dot-calling-obj func-name)
-        (binding-lookup 'this state)))) ; TODO: handle "this" doesn't exist
+        'this)))
 
-(define (method-closure func-call state)
+(define (method-closure func-call state throw ctt rtt)
   (let ([func-name (func-call-name func-call)])
     (if (list? func-name)
         (dl-lookup (dot-name func-name)
-                   (class-closure-methods (binding-lookup (instance-closure-runtime-type (binding-lookup (dot-calling-obj func-name) state)) state)))
-        (dl-lookup func-name (class-closure-methods (binding-lookup (binding-lookup 'this state))))))) ; assuming "this" is bound to an atom
+                   (class-closure-methods (binding-lookup (instance-closure-runtime-type (value-generic (calling-obj func-call) state identity throw ctt rtt)) state)))
+        (dl-lookup func-name (class-closure-methods (binding-lookup (instance-closure-runtime-type (binding-lookup 'this state)) state))))))
+
 
 (define dot-calling-obj cadr)
 (define dot-name caddr)
@@ -523,6 +527,7 @@
 (define func-closure-body cadr)
 (define func-closure-scope-func caddr)
 (define method-closure-type-func cadddr)
+(define excluding-this cdr)
 
 (define class-dec-name cadr)
 (define class-dec-extension caddr)
@@ -537,12 +542,14 @@
 (define (class-closure-set-methods closure new-methods)
   (list (class-closure-super closure)
         new-methods
-        (class-closure-instance-fields-init closure)))
+        (class-closure-instance-fields-init closure)
+        (class-closure-name closure)))
 (define class-closure-instance-fields-init caddr)
 (define (class-closure-set-instance-fields-init closure new-instance-fields)
   (list (class-closure-super closure)
         (class-closure-methods closure)
-        new-instance-fields))
+        new-instance-fields
+        (class-closure-name closure)))
 (define class-closure-name cadddr)
 
 (define instance-closure-runtime-type car)
