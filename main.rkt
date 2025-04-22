@@ -49,18 +49,18 @@
    (lambda (e s) (error (~a "Error in global pass: " e)))
    no-type no-type))
 
-(define (state-first-pass-list tree state next throw compiletimetype runtimetype)
+(define (state-first-pass-list tree state next throw ctt rtt)
   (if (null? tree)
       (next state)
       (state-class-dec (first-statement tree)
                        state
-                       (lambda (s) (state-first-pass-list (next-statements tree) s next throw compiletimetype runtimetype))
-                       throw compiletimetype runtimetype)))
+                       (lambda (s) (state-first-pass-list (next-statements tree) s next throw ctt rtt))
+                       throw ctt rtt)))
 
 ; Perform the first pass for a class
 ; Call next on the resulting state
 ; Fields: (my fields in reverse order, my super's fields)
-(define (state-class-dec class-tree state next throw compiletimetype runtimetype)
+(define (state-class-dec class-tree state next throw ctt rtt)
   (state-class-body (class-dec-body class-tree)
                     (list (class-dec-super class-tree)
                           (if (null? (class-dec-super class-tree))
@@ -71,32 +71,32 @@
                               (class-closure-methods (binding-lookup (class-dec-super class-tree) state)))
                           (class-dec-name class-tree))
                     (lambda (c) (next (binding-create (class-dec-name class-tree) c state)))
-                    throw compiletimetype runtimetype))
+                    throw ctt rtt))
 
-(define (state-class-body body-tree closure next throw compiletimetype runtimetype)
+(define (state-class-body body-tree closure next throw ctt rtt)
   (if (null? body-tree)
       (next closure)
       (state-class-body-statement (first-statement body-tree)
                                   closure
-                                  (lambda (c) (state-class-body (next-statements body-tree) c next throw compiletimetype runtimetype)) 
-                                  compiletimetype runtimetype)))
+                                  (lambda (c) (state-class-body (next-statements body-tree) c next throw ctt rtt)) 
+                                  ctt rtt)))
 
-(define (state-class-body-statement expr closure next compiletimetype runtimetype)
+(define (state-class-body-statement expr closure next ctt rtt)
   (let ([type (statement-type expr)]
         [body (statement-body expr)])
     (cond
-      [(eq? type 'var)      (state-class-declare-field body closure next compiletimetype runtimetype)]
-      [(eq? type 'function) (state-class-declare-method body closure next compiletimetype runtimetype)]
+      [(eq? type 'var)      (state-class-declare-field body closure next ctt rtt)]
+      [(eq? type 'function) (state-class-declare-method body closure next ctt rtt)]
       [(eq? type 'static-function) (next closure)]
       [else (error (~a "Illegal " type " statement in top-level scope: '" expr "'"))])))
 
-(define (state-class-declare-field declaration-body closure next compiletimetype runtimetype)
+(define (state-class-declare-field declaration-body closure next ctt rtt)
   (next (class-closure-set-instance-fields-init
          closure (dl-create (variable declaration-body)
                             (if (initializes? declaration-body) (value declaration-body) 0)
                             (class-closure-instance-fields-init closure)))))
 
-(define (state-class-declare-method declaration-body closure next compiletimetype runtimetype)
+(define (state-class-declare-method declaration-body closure next ctt rtt)
   (next (class-closure-set-methods
          closure (dl-create (func-dec-name declaration-body)
                             (list (func-dec-formal-params (cons 'this declaration-body))
@@ -107,40 +107,40 @@
                             (class-closure-methods closure)))))
 
 ; Returns the return value after recursing through a series of statement lists
-(define (state-statement-list tree state next return break continue throw compiletimetype runtimetype)
+(define (state-statement-list tree state next return break continue throw ctt rtt)
   (if (null? tree)
       (next state)
       (state-generic (first-statement tree)
                      state
-                     (lambda (s) (state-statement-list (next-statements tree) s next return break continue throw compiletimetype runtimetype))
+                     (lambda (s) (state-statement-list (next-statements tree) s next return break continue throw ctt rtt))
                      return
                      break
                      continue
-                     throw compiletimetype runtimetype)))
+                     throw ctt rtt)))
 
 ; Wrapper for returning state from different statement types
-(define (state-generic expr state next return break continue throw compiletimetype runtimetype)
+(define (state-generic expr state next return break continue throw ctt rtt)
   (let ([type (statement-type expr)]
         [body (statement-body expr)])
     (cond
-      [(eq? type 'var)       (state-declare   body state next throw compiletimetype runtimetype)]
-      [(eq? type '=)         (state-assign    body state next throw compiletimetype runtimetype)]
-      [(eq? type 'if)        (state-if        body state next return break continue throw compiletimetype runtimetype)]
-      [(eq? type 'while)     (state-while     body state next return next continue throw compiletimetype runtimetype)]
-      [(eq? type 'return)    (value-generic   (return-value body) state return throw compiletimetype runtimetype)]
+      [(eq? type 'var)       (state-declare   body state next throw ctt rtt)]
+      [(eq? type '=)         (state-assign    body state next throw ctt rtt)]
+      [(eq? type 'if)        (state-if        body state next return break continue throw ctt rtt)]
+      [(eq? type 'while)     (state-while     body state next return next continue throw ctt rtt)]
+      [(eq? type 'return)    (value-generic   (return-value body) state return throw ctt rtt)]
       [(eq? type 'break)     (break           state)]
       [(eq? type 'continue)  (continue        state)]
-      [(eq? type 'throw)     (value-generic   (thrown-value body) state (lambda (v) (throw v state)) throw compiletimetype runtimetype)]
-      [(eq? type 'try)       (state-try       body state next return break continue throw compiletimetype runtimetype)]
-      [(eq? type 'catch)     (state-catch     body state next return break continue throw compiletimetype runtimetype)]
-      [(eq? type 'finally)   (state-finally   body state next return break continue throw compiletimetype runtimetype)]
-      [(eq? type 'begin)     (state-block     body state next return break continue throw compiletimetype runtimetype)]
-      [(eq? type 'function)  (state-func-dec  body state next compiletimetype runtimetype)]
-      [(eq? type 'funcall)   (state-func-call body state next return throw compiletimetype runtimetype)]
+      [(eq? type 'throw)     (value-generic   (thrown-value body) state (lambda (v) (throw v state)) throw ctt rtt)]
+      [(eq? type 'try)       (state-try       body state next return break continue throw ctt rtt)]
+      [(eq? type 'catch)     (state-catch     body state next return break continue throw ctt rtt)]
+      [(eq? type 'finally)   (state-finally   body state next return break continue throw ctt rtt)]
+      [(eq? type 'begin)     (state-block     body state next return break continue throw ctt rtt)]
+      [(eq? type 'function)  (state-func-dec  body state next ctt rtt)]
+      [(eq? type 'funcall)   (state-func-call body state next return throw ctt rtt)]
       [else                  (error (~a "Invalid syntax: " type))])))
 
 ; Returns state after running a block of statements
-(define (state-block body state next return break continue throw compiletimetype runtimetype)
+(define (state-block body state next return break continue throw ctt rtt)
   (state-statement-list body
                         (binding-push-layer state #f)
                         (lambda (s) (next (binding-pop-layer s)))
@@ -148,47 +148,47 @@
                         (lambda (s) (break (binding-pop-layer s)))
                         (lambda (s) (continue (binding-pop-layer s)))
                         (lambda (e s) (throw e (binding-pop-layer s)))
-                        compiletimetype runtimetype))
+                        ctt rtt))
 
 ; Returns state after a declaration
 ; Declaration statements may or may not contain an initialization value
-(define (state-declare expr state next throw compiletimetype runtimetype)
+(define (state-declare expr state next throw ctt rtt)
   (if (initializes? expr)
       (value-generic (value expr)
                      state
                      (lambda (v) (next (binding-create (variable expr) v state)))
-                     throw compiletimetype runtimetype)
+                     throw ctt rtt)
       (next (binding-create (variable expr) binding-uninit state))))
 
 ; Returns state after an assignment
-(define (state-assign expr state next throw compiletimetype runtimetype)
-  (value-generic (value expr) state (lambda (v) (next (binding-set (variable expr) v state))) throw compiletimetype runtimetype))
+(define (state-assign expr state next throw ctt rtt)
+  (value-generic (value expr) state (lambda (v) (next (binding-set (variable expr) v state))) throw ctt rtt))
 
 ; Returns state after an if statement
-(define (state-if expr state next return break continue throw compiletimetype runtimetype)
+(define (state-if expr state next return break continue throw ctt rtt)
   (cond
-    [(eq? 'true (value-generic (conditional-expr expr) state identity throw compiletimetype runtimetype))
-     (state-generic (then-expr expr) state next return break continue throw compiletimetype runtimetype)]
+    [(eq? 'true (value-generic (conditional-expr expr) state identity throw ctt rtt))
+     (state-generic (then-expr expr) state next return break continue throw ctt rtt)]
     [(contains-else? expr)
-     (state-generic (else-expr expr) state next return break continue throw compiletimetype runtimetype)]
+     (state-generic (else-expr expr) state next return break continue throw ctt rtt)]
     [else (next state)]))
 
 ; Returns state after a while statement
-(define (state-while expr state next return break continue throw compiletimetype runtimetype)
-  (if (eq? 'false (value-generic (conditional-expr expr) state identity throw compiletimetype runtimetype))
+(define (state-while expr state next return break continue throw ctt rtt)
+  (if (eq? 'false (value-generic (conditional-expr expr) state identity throw ctt rtt))
       (next state)
       (state-generic (body-expr expr)
                      state
-                     (lambda (s) (state-while expr s next return break continue throw compiletimetype runtimetype))
+                     (lambda (s) (state-while expr s next return break continue throw ctt rtt))
                      return
                      break
-                     (lambda (s) (state-while expr s next return break continue throw compiletimetype runtimetype))
-                     throw compiletimetype runtimetype)))
+                     (lambda (s) (state-while expr s next return break continue throw ctt rtt))
+                     throw ctt rtt)))
 
 ; Returns state after a try block (catch or finally block may be empty)
-(define (state-try expr state next return break continue throw compiletimetype runtimetype)
-  (let ([finally-cont (lambda (s) (state-generic (finally-block expr) s next return break continue throw compiletimetype runtimetype))]
-        [return-finally-cont (lambda (v) (state-generic (finally-block expr) state (lambda (s) (return v)) return break continue throw compiletimetype runtimetype))])
+(define (state-try expr state next return break continue throw ctt rtt)
+  (let ([finally-cont (lambda (s) (state-generic (finally-block expr) s next return break continue throw ctt rtt))]
+        [return-finally-cont (lambda (v) (state-generic (finally-block expr) state (lambda (s) (return v)) return break continue throw ctt rtt))])
     (cond
       [(and (contains-catch? expr) (contains-finally? expr))
        (state-block (try-body expr) state finally-cont return-finally-cont finally-cont finally-cont
@@ -199,7 +199,7 @@
                                      return-finally-cont
                                      finally-cont
                                      finally-cont
-                                     (lambda (e s) (state-generic (finally-block expr) s next return break continue throw compiletimetype runtimetype)))) compiletimetype runtimetype)]
+                                     (lambda (e s) (state-generic (finally-block expr) s next return break continue throw ctt rtt)) ctt rtt)) ctt rtt)]
       [(contains-catch? expr)
        (state-block (try-body expr) state next return break continue
                     (lambda (e s)
@@ -209,24 +209,24 @@
                                      return
                                      break
                                      continue
-                                     throw compiletimetype runtimetype)) compiletimetype runtimetype)]
+                                     throw ctt rtt)) ctt rtt)]
       [(contains-finally? expr)
        (state-block (try-body expr) state finally-cont return-finally-cont finally-cont finally-cont
                     (lambda (e s) (state-generic (finally-block expr) s (lambda (s) (throw e s)) return break continue 
-                                                 (lambda (e s) (state-generic (finally-block expr) s next return break continue throw compiletimetype runtimetype)))) compiletimetype runtimetype)]
+                                                 (lambda (e s) (state-generic (finally-block expr) s next return break continue throw ctt rtt)) ctt rtt)) ctt rtt)]
       [else (error "Try block must have at least one catch or finally block")])))
 
 
 ; Returns state after a catch block
-(define (state-catch expr state next return break continue throw compiletimetype runtimetype)
-  (state-block (catch-body expr) state next return break continue throw compiletimetype runtimetype))
+(define (state-catch expr state next return break continue throw ctt rtt)
+  (state-block (catch-body expr) state next return break continue throw ctt rtt))
 
 ; Returns state after a finally block
-(define (state-finally expr state next return break continue throw compiletimetype runtimetype)
-  (state-block (finally-body expr) state next return break continue throw compiletimetype runtimetype))
+(define (state-finally expr state next return break continue throw ctt rtt)
+  (state-block (finally-body expr) state next return break continue throw ctt rtt))
 
 ; Handles function definition by binding function name to closure
-(define (state-func-dec func-dec state next compiletimetype runtimetype)
+(define (state-func-dec func-dec state next ctt rtt)
   (let ([idx (binding-layer-idx state)])
     (next (binding-create (func-dec-name func-dec)
                           (list (func-dec-formal-params func-dec)
@@ -236,12 +236,12 @@
                           state))))
 
 ; Handles function call that does not return a value
-(define (state-func-call func-call state next return throw compiletimetype runtimetype)
+(define (state-func-call func-call state next return throw ctt rtt)
   ; Ignore values from return & next (this is a value func so next's parameter is a value, not a state!)
-  (value-func-call func-call state (lambda (v) (next state)) (lambda (v) (next state)) throw compiletimetype runtimetype))
+  (value-func-call func-call state (lambda (v) (next state)) (lambda (v) (next state)) throw ctt rtt))
 
 ; Bind actual parameters to formal parameters during a function call
-(define (bind-params formal-params actual-params func-state curr-state throw compiletimetype runtimetype)
+(define (bind-params formal-params actual-params func-state curr-state throw ctt rtt)
   (if (null? actual-params)
       func-state
       (bind-params (next-params formal-params)
@@ -249,9 +249,9 @@
                    (value-generic (first-param actual-params)
                                   curr-state
                                   (lambda (v) (binding-create (first-param formal-params) v func-state))
-                                  throw compiletimetype runtimetype)
+                                  throw ctt rtt)
                    curr-state
-                   throw compiletimetype runtimetype)))
+                   throw ctt rtt)))
 
 
 ; ======================================================
@@ -323,7 +323,7 @@
 
 
 ; get value of expression, assuming expression uses a binary operator
-(define (value-binary-operator expression state next throw compiletimetype runtimetype)
+(define (value-binary-operator expression state next throw ctt rtt)
   (value-generic (first-operand-literal expression) state
                  (lambda (op1)
                    (value-generic (second-operand-literal expression) state
@@ -343,28 +343,28 @@
                                         [(eq? '>= op) (next (cond-geq  op1 op2))]
                                         [(eq? '&& op) (next (bool-and  op1 op2 (lambda (e) (throw e state))))]
                                         [(eq? '|| op) (next (bool-or   op1 op2 (lambda (e) (throw e state))))]
-                                        [else (throw (~a "Invalid binary operator: " op) state)]))) throw compiletimetype runtimetype))
-                 throw compiletimetype runtimetype))
+                                        [else (throw (~a "Invalid binary operator: " op) state)]))) throw ctt rtt))
+                 throw ctt rtt))
 
 ; get value of expression, assuming expression uses a unary operator
-(define (value-unary-operator expression state next throw compiletimetype runtimetype)
+(define (value-unary-operator expression state next throw ctt rtt)
   (value-generic (first-operand-literal expression) state
                  (lambda (op1)
                    (let ([op (operator expression)])
                      (cond
                        [(eq? '- op)   (next (op-unary-minus op1))]
                        [(eq? '! op)   (next (bool-not       op1 (lambda (e) (throw e state))))]
-                       [(eq? 'new op) (next (value-instance-closure op1 compiletimetype runtimetype))]
+                       [(eq? 'new op) (next (value-instance-closure op1 ctt rtt))]
                        [else (throw (~a "Invalid unary operator: " op) state)])))
-                 throw compiletimetype runtimetype))
+                 throw ctt rtt))
 
-(define (value-instance-closure class-closure compiletimetype runtimetype)
+(define (value-instance-closure class-closure ctt rtt)
   (list
    (class-closure-name class-closure)
    (reverse (dl-vals (class-closure-instance-fields-init class-closure)))))
 
 ; get value of a function call
-(define (value-func-call func-call state return next throw compiletimetype runtimetype)
+(define (value-func-call func-call state return next throw ctt rtt)
   (let ([closure (binding-lookup (func-call-name func-call) state)])
     (if (not (same-length? (func-closure-formal-params closure) (func-call-actual-params func-call)))
         (throw (~a "Function called with wrong number of parameters. Expected "
@@ -380,10 +380,10 @@
                               next
                               (lambda (s) (throw (~a "Break outside of loop in function " (func-call-name func-call)) state))
                               (lambda (s) (throw (~a "Continue outside of loop in function " (func-call-name func-call)) state))
-                              (lambda (e s) (throw e state)) compiletimetype runtimetype))))
+                              (lambda (e s) (throw e state)) ctt rtt))))
 
 ; get the value of expression, regardless of type or operator aryness
-(define (value-generic expression state next throw compiletimetype runtimetype)
+(define (value-generic expression state next throw ctt rtt)
   (cond
     [(number? expression) (next expression)]
     [(boolean-literal? expression) (next expression)]
@@ -395,9 +395,9 @@
                       state
                       (lambda (v) (throw (~a "No return statement in function " (func-call-name (expr-func-call expression))) state))
                       next
-                      throw compiletimetype runtimetype)]
-    [(has-second-operand? expression) (value-binary-operator expression state next throw compiletimetype runtimetype)]
-    [(has-first-operand? expression) (value-unary-operator expression state next throw compiletimetype runtimetype)]
+                      throw ctt rtt)]
+    [(has-second-operand? expression) (value-binary-operator expression state next throw ctt rtt)]
+    [(has-first-operand? expression) (value-unary-operator expression state next throw ctt rtt)]
     [else (throw (~a "Invalid operator: " (operator expression)) state)]))
 
 ; ======================================================
