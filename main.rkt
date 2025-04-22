@@ -45,9 +45,9 @@
                   identity
                   (lambda (e s) (error (~a "Error in running main: " e)))
                   (lambda (e s) (error (~a "Unexpected continue in main: " e)))
-                  (lambda (e s) (error (~a "Unhandled throw in main: " e))) null null))))))
+                  (lambda (e s) (error (~a "Unhandled throw in main: " e))) no-type no-type))))))
    (lambda (e s) (error (~a "Error in global pass: " e)))
-   null null))
+   no-type no-type))
 
 (define (state-first-pass-list tree state next throw compiletimetype runtimetype)
   (if (null? tree)
@@ -532,3 +532,5 @@
   (list
    (instance-closure-runtime-type closure)
    new-vals))
+
+(define no-type null)
