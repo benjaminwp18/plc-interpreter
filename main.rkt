@@ -99,7 +99,7 @@
 (define (state-class-declare-method declaration-body closure next ctt rtt)
   (next (class-closure-set-methods
          closure (dl-create (func-dec-name declaration-body)
-                            (list (func-dec-formal-params (cons 'this declaration-body))
+                            (list (cons 'this (func-dec-formal-params declaration-body))
                                   (func-dec-body declaration-body)
                                   (lambda (new-state)
                                     (binding-state-by-layer-idx new-state 1))
@@ -380,7 +380,9 @@
                                            (func-call-actual-params func-call)
                                            (binding-push-layer ((func-closure-scope-func closure) state) #t)
                                            state
-                                           throw)
+                                           throw
+                                           ctt
+                                           rtt)
                               return
                               next
                               (lambda (s) (throw (~a "Break outside of loop in function " (func-call-name func-call)) state))
@@ -537,8 +539,8 @@
 (define (class-closure-set-methods closure new-methods)
   (list (class-closure-super closure)
         new-methods
-        (class-closure-instance-fields-init closure))
-        (class-closure-name closure))
+        (class-closure-instance-fields-init closure)
+        (class-closure-name closure)))
 (define class-closure-instance-fields-init caddr)
 (define (class-closure-set-instance-fields-init closure new-instance-fields)
   (list (class-closure-super closure)
