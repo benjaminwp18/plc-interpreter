@@ -43,9 +43,11 @@
                   s
                   (lambda (s) binding-uninit)
                   identity
-                  (lambda (e s) (error (~a "Error in running main: " e)))
-                  (lambda (e s) (error (~a "Unexpected continue in main: " e)))
-                  (lambda (e s) (error (~a "Unhandled throw in main: " e))) no-type no-type))))))
+                  (lambda (s) (error (~a "Unexpected break in main")))
+                  (lambda (s) (error (~a "Unexpected continue in main")))
+                  (lambda (e s) (error (~a "Unhandled throw in main: " e)))
+                  no-type
+                  no-type))))))
    (lambda (e s) (error (~a "Error in global pass: " e)))
    no-type no-type))
 
@@ -65,10 +67,10 @@
                     (list (class-dec-super class-tree)
                           (if (null? (class-dec-super class-tree))
                               empty-dl
-                              (class-closure-instance-fields-init (binding-lookup (class-dec-super class-tree) state)))
+                              (class-closure-methods (binding-lookup (class-dec-super class-tree) state)))
                           (if (null? (class-dec-super class-tree))
                               empty-dl
-                              (class-closure-methods (binding-lookup (class-dec-super class-tree) state)))
+                              (class-closure-instance-fields-init (binding-lookup (class-dec-super class-tree) state)))
                           (class-dec-name class-tree))
                     (lambda (c) (next (binding-create (class-dec-name class-tree) c state)))
                     throw ctt rtt))
@@ -78,7 +80,7 @@
       (next closure)
       (state-class-body-statement (first-statement body-tree)
                                   closure
-                                  (lambda (c) (state-class-body (next-statements body-tree) c next throw ctt rtt)) 
+                                  (lambda (c) (state-class-body (next-statements body-tree) c next throw ctt rtt))
                                   ctt rtt)))
 
 (define (state-class-body-statement expr closure next ctt rtt)
@@ -92,19 +94,19 @@
 
 (define (state-class-declare-field declaration-body closure next ctt rtt)
   (next (class-closure-set-instance-fields-init
-         closure (dl-create (variable declaration-body)
-                            (if (initializes? declaration-body) (value declaration-body) 0)
-                            (class-closure-instance-fields-init closure)))))
+         closure (dl-cons (list (variable declaration-body)
+                                (if (initializes? declaration-body) (value declaration-body) 0))
+                          (class-closure-instance-fields-init closure)))))
 
 (define (state-class-declare-method declaration-body closure next ctt rtt)
   (next (class-closure-set-methods
-         closure (dl-create (func-dec-name declaration-body)
-                            (list (cons 'this (func-dec-formal-params declaration-body))
-                                  (func-dec-body declaration-body)
-                                  (lambda (new-state)
-                                    (binding-state-by-layer-idx new-state 1))
-                                  (lambda (new-state) (class-closure-name closure)))
-                            (class-closure-methods closure)))))
+         closure (dl-cons (list (func-dec-name declaration-body)
+                                (list (cons 'this (func-dec-formal-params declaration-body))
+                                      (func-dec-body declaration-body)
+                                      (lambda (new-state)
+                                        (binding-state-by-layer-idx new-state 1))
+                                      (lambda (new-state) (class-closure-name closure))))
+                          (class-closure-methods closure)))))
 
 ; Returns the return value after recursing through a series of statement lists
 (define (state-statement-list tree state next return break continue throw ctt rtt)
@@ -153,16 +155,33 @@
 ; Returns state after a declaration
 ; Declaration statements may or may not contain an initialization value
 (define (state-declare expr state next throw ctt rtt)
-  (if (initializes? expr)
-      (value-generic (value expr)
-                     state
-                     (lambda (v) (next (binding-create (variable expr) v state)))
-                     throw ctt rtt)
-      (next (binding-create (variable expr) binding-uninit state))))
+  (cond
+    [(is-dot-operator? (variable expr)) (error (~a "Cannot declare the dot operation '"
+                                                   (variable expr) "'"))]
+    [(initializes? expr) (value-generic (value expr)
+                                        state
+                                        (lambda (v) (next (binding-create (variable expr) v state)))
+                                        throw ctt rtt)]
+    [else (next (binding-create (variable expr) binding-uninit state))]))
 
 ; Returns state after an assignment
 (define (state-assign expr state next throw ctt rtt)
-  (value-generic (value expr) state (lambda (v) (next (binding-set (variable expr) v state))) throw ctt rtt))
+  (let ([left-side (variable expr)])
+    (value-generic (value expr) state
+                   (lambda (v) (if (is-dot-operator? left-side)
+                                   (value-generic (first-operand-literal left-side) state
+                                                  (lambda (closure)
+                                                    (value-instance-field-box
+                                                     closure
+                                                     (second-operand-literal left-side)
+                                                     state
+                                                     (lambda (b) (next (begin (set-box! b v) state)))
+                                                     throw
+                                                     ; runtime type == compile time type for regular variables
+                                                     (instance-closure-runtime-type closure)))
+                                                  throw ctt rtt)
+                                   (next (binding-set left-side v state))))
+                   throw ctt rtt)))
 
 ; Returns state after an if statement
 (define (state-if expr state next return break continue throw ctt rtt)
@@ -212,7 +231,7 @@
                                      throw ctt rtt)) ctt rtt)]
       [(contains-finally? expr)
        (state-block (try-body expr) state finally-cont return-finally-cont finally-cont finally-cont
-                    (lambda (e s) (state-generic (finally-block expr) s (lambda (s) (throw e s)) return break continue 
+                    (lambda (e s) (state-generic (finally-block expr) s (lambda (s) (throw e s)) return break continue
                                                  (lambda (e s) (state-generic (finally-block expr) s next return break continue throw ctt rtt)) ctt rtt)) ctt rtt)]
       [else (error "Try block must have at least one catch or finally block")])))
 
@@ -324,27 +343,35 @@
 
 ; get value of expression, assuming expression uses a binary operator
 (define (value-binary-operator expression state next throw ctt rtt)
-  (value-generic (first-operand-literal expression) state
-                 (lambda (op1)
-                   (value-generic (second-operand-literal expression) state
-                                  (lambda (op2)
-                                    (let ([op (operator expression)])
-                                      (cond
-                                        [(eq? '+  op) (next (op-plus   op1 op2))]
-                                        [(eq? '-  op) (next (op-minus  op1 op2))]
-                                        [(eq? '*  op) (next (op-times  op1 op2))]
-                                        [(eq? '/  op) (next (op-divide op1 op2))]
-                                        [(eq? '%  op) (next (op-modulo op1 op2))]
-                                        [(eq? '== op) (next (cond-eq   op1 op2))]
-                                        [(eq? '!= op) (next (cond-neq  op1 op2))]
-                                        [(eq? '>  op) (next (cond-gt   op1 op2))]
-                                        [(eq? '<  op) (next (cond-lt   op1 op2))]
-                                        [(eq? '<= op) (next (cond-leq  op1 op2))]
-                                        [(eq? '>= op) (next (cond-geq  op1 op2))]
-                                        [(eq? '&& op) (next (bool-and  op1 op2 (lambda (e) (throw e state))))]
-                                        [(eq? '|| op) (next (bool-or   op1 op2 (lambda (e) (throw e state))))]
-                                        [else (throw (~a "Invalid binary operator: " op) state)]))) throw ctt rtt))
-                 throw ctt rtt))
+  (if (is-dot-operator? expression)
+      (value-generic (first-operand-literal expression) state
+                     (lambda (closure)
+                       (value-get-instance-field closure (second-operand-literal expression)
+                                                 state next throw
+                                                 ; runtime type == compile time type for regular variables
+                                                 (instance-closure-runtime-type closure)))
+                     throw ctt rtt)
+      (value-generic (first-operand-literal expression) state
+                     (lambda (op1)
+                       (value-generic (second-operand-literal expression) state
+                                      (lambda (op2)
+                                        (let ([op (operator expression)])
+                                          (cond
+                                            [(eq? '+  op) (next (op-plus   op1 op2))]
+                                            [(eq? '-  op) (next (op-minus  op1 op2))]
+                                            [(eq? '*  op) (next (op-times  op1 op2))]
+                                            [(eq? '/  op) (next (op-divide op1 op2))]
+                                            [(eq? '%  op) (next (op-modulo op1 op2))]
+                                            [(eq? '== op) (next (cond-eq   op1 op2))]
+                                            [(eq? '!= op) (next (cond-neq  op1 op2))]
+                                            [(eq? '>  op) (next (cond-gt   op1 op2))]
+                                            [(eq? '<  op) (next (cond-lt   op1 op2))]
+                                            [(eq? '<= op) (next (cond-leq  op1 op2))]
+                                            [(eq? '>= op) (next (cond-geq  op1 op2))]
+                                            [(eq? '&& op) (next (bool-and  op1 op2 (lambda (e) (throw e state))))]
+                                            [(eq? '|| op) (next (bool-or   op1 op2 (lambda (e) (throw e state))))]
+                                            [else (throw (~a "Invalid binary operator: " op) state)]))) throw ctt rtt))
+                     throw ctt rtt)))
 
 ; get value of expression, assuming expression uses a unary operator
 (define (value-unary-operator expression state next throw ctt rtt)
@@ -361,7 +388,7 @@
 (define (value-instance-closure class-closure ctt rtt)
   (list
    (class-closure-name class-closure)
-   (reverse (dl-vals (class-closure-instance-fields-init class-closure)))))
+   (reverse (dl-box-vals (class-closure-instance-fields-init class-closure)))))
 
 ; get value of a function call
 (define (value-func-call func-call state return next throw ctt rtt)
@@ -409,6 +436,8 @@
     [(boolean-literal? expression) (next expression)]
     [(eq? (binding-status expression state) binding-init) (next (binding-lookup expression state))]
     [(eq? (binding-status expression state) binding-uninit) (throw (~a expression " has not been assigned a value") state)]
+    [(not-equal? (value-instance-field-index expression state ctt) dl-unbound)
+     (value-get-instance-field (binding-lookup 'this state) expression state next throw ctt)]
     [(not (pair? expression)) (throw (~a expression " has not been declared") state)]
     [(eq? (expr-start expression) 'funcall)
      (value-func-call (expr-func-call expression)
@@ -419,6 +448,20 @@
     [(has-second-operand? expression) (value-binary-operator expression state next throw ctt rtt)]
     [(has-first-operand? expression) (value-unary-operator expression state next throw ctt rtt)]
     [else (throw (~a "Invalid operator: " (operator expression)) state)]))
+
+(define (value-get-instance-field instance-closure field-atom state next throw ctt)
+  (value-instance-field-box instance-closure field-atom state (lambda (b) (next (unbox b))) throw ctt))
+
+(define (value-instance-field-box instance-closure field-atom state next throw ctt)
+  (if (equal? (value-instance-field-index field-atom state ctt) dl-unbound)
+      (throw (~a "Field " field-atom " could not be found in class " ctt))
+      (next (list-ref (instance-closure-field-vals instance-closure)
+                      (value-instance-field-index field-atom state ctt)))))
+
+(define (value-instance-field-index field-atom state ctt)
+  (if (equal? ctt no-type)
+      dl-unbound
+      (dl-get-reverse-index field-atom (class-closure-instance-fields-init (binding-lookup ctt state)))))
 
 ; ======================================================
 ; Operations
@@ -509,6 +552,8 @@
 
 (define (has-second-operand? expression) (not-null? (cddr expression)))
 (define (has-first-operand? expression) (not-null? (cdr expression)))
+(define (is-dot-operator? expr)
+  (and (list? expr) (equal? (car expr) 'dot) (equal? (length expr) 3)))
 
 (define operator car)
 (define first-operand-literal cadr)
@@ -534,8 +579,9 @@
 (define class-dec-extension caddr)
 (define (class-dec-super class-dec)
   (if (null? (class-dec-extension class-dec))
-      '()
+      no-superclass
       (cadr (class-dec-extension class-dec))))
+(define no-superclass '())
 (define class-dec-body cadddr)
 
 (define class-closure-super car)

@@ -1213,5 +1213,158 @@ class A {
 </code>
 </test>
 
+<test>
+<number>58</number>
+<description>Test 58: basic field access</description>
+<does-error>false</does-error>
+<result>5</result>
+<main-class>A</main-class>
+<code>
+class A {
+  var x = 5;
+
+  static function main() {
+    var a = new A();
+    return a.x;
+  }
+}
+</code>
+</test>
+
+<test>
+<number>59</number>
+<description>Test 59: multiple field access</description>
+<does-error>false</does-error>
+<result>24</result>
+<main-class>A</main-class>
+<code>
+class B {
+  var x = 1;
+  var y = 2;
+  var blah = false;
+}
+
+class A {
+  var x = 5;
+  var y = 3;
+
+  static function main() {
+    var a = new A();
+    var b = new B();
+    var n = (a.x + a.y) * (b.x + b.y);
+    if (b.blah) {
+      n = 0;
+    }
+    return n;
+  }
+}
+</code>
+</test>
+
+<test>
+<number>60</number>
+<description>Test 60: inheritance field access</description>
+<does-error>false</does-error>
+<result>123456</result>
+<main-class>A</main-class>
+<code>
+class A {
+  var x = 3000;
+  var y = 400;
+  var foo = 50;
+
+  static function main() {
+    var a = new A();
+    var b = new B();
+    var n = b.x + b.y + a.x + a.y + b.foo + b.bar;
+    return n;
+  }
+}
+
+class B extends A {
+  var x = 100000;
+  var y = 20000;
+  var bar = 6;
+}
+</code>
+</test>
+
+<test>
+<number>61</number>
+<description>Test 61: set field</description>
+<does-error>false</does-error>
+<result>3</result>
+<main-class>A</main-class>
+<code>
+class A {
+  var x = 5;
+  var y = 3;
+
+  static function main() {
+    var a = new A();
+    a.x = a.y;
+    return a.x;
+  }
+}
+</code>
+</test>
+
+<test>
+<number>62</number>
+<description>Test 62: set inherited field</description>
+<does-error>false</does-error>
+<result>829476</result>
+<main-class>A</main-class>
+<code>
+class A {
+  var x = 3000;
+  var y = 400;
+  var foo = 50;
+
+  static function main() {
+    var a = new A();
+    var b = new B();
+    b.x = 800000;
+    a.x = 9000;
+    b.foo = 70;
+    var n = b.x + b.y + a.x + a.y + b.foo + b.bar;
+    return n;
+  }
+}
+
+class B extends A {
+  var x = 100000;
+  var y = 20000;
+  var bar = 6;
+}
+</code>
+</test>
+
+<test>
+<number>63</number>
+<description>Test 63: get fields from anonymous instance</description>
+<does-error>false</does-error>
+<result>123456</result>
+<main-class>A</main-class>
+<code>
+class A {
+  var x = 3000;
+  var y = 400;
+  var foo = 50;
+
+  static function main() {
+    var n = new B().x + new B().y + new A().x + new A().y + new B().foo + new B().bar;
+    return n;
+  }
+}
+
+class B extends A {
+  var x = 100000;
+  var y = 20000;
+  var bar = 6;
+}
+</code>
+</test>
+
 </body>
 </html>
