@@ -169,14 +169,17 @@
                    (lambda (v) (next
                                 (if (is-dot-operator? left-side)
                                     (begin
-                                          (set-box! (value-instance-field-box
-                                                     (first-operand-literal left-side)
-                                                     (second-operand-literal left-side)
-                                                     state
-                                                     (instance-closure-runtime-type (binding-lookup (first-operand-literal left-side) state)))
-                                                    v)
-                                          state)
-                                         (binding-set left-side v state))))
+                                      (set-box! (value-instance-field-box
+                                                 (first-operand-literal left-side)
+                                                 (second-operand-literal left-side)
+                                                 state
+                                                 ; runtime type == compile time type for regular variables
+                                                 (instance-closure-runtime-type
+                                                  (binding-lookup
+                                                   (first-operand-literal left-side) state)))
+                                                v)
+                                      state)
+                                    (binding-set left-side v state))))
                    throw ctt rtt)))
 
 ; Returns state after an if statement
@@ -434,12 +437,12 @@
     [(equal? (value-instance-field-index field-atom state ctt) dl-unbound)
      (error (~a "Field " field-atom " could not be found in class " ctt))]
     [else (list-ref (instance-closure-field-vals (binding-lookup instance-atom state))
-                          (value-instance-field-index field-atom state ctt))]))
+                    (value-instance-field-index field-atom state ctt))]))
 
 (define (value-instance-field-index field-atom state ctt)
   (if (equal? ctt no-type)
-    dl-unbound
-    (dl-get-reverse-index field-atom (class-closure-instance-fields-init (binding-lookup ctt state)))))
+      dl-unbound
+      (dl-get-reverse-index field-atom (class-closure-instance-fields-init (binding-lookup ctt state)))))
 
 ; ======================================================
 ; Operations

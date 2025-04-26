@@ -93,9 +93,9 @@
   (cond
     [(lyr-empty? layer) binding-unbound]
     [(equal? (lyr-first-name layer) name)
-      (begin
-        (set-box! (lyr-first-val layer) value)
-        layer)]
+     (begin
+       (set-box! (lyr-first-val layer) value)
+       layer)]
     [else (let ([result (lyr-set-binding name value (lyr-of-rest-bindings layer))])
             (if (equal? binding-unbound result)
                 binding-unbound

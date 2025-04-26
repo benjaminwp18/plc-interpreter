@@ -13,10 +13,10 @@
 
 ; returns true if a is in lis; false otherwise
 (define (in-list? a lis)
-    (cond
-      [(null? lis)       #f]
-      [(eq? a (car lis)) #t]
-      [else             (in-list? a (cdr lis))]))
+  (cond
+    [(null? lis)       #f]
+    [(eq? a (car lis)) #t]
+    [else             (in-list? a (cdr lis))]))
 
 ; returns true if a does not equal b
 (define (not-equal? a b)
