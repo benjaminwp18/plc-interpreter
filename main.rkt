@@ -65,10 +65,10 @@
                     (list (class-dec-super class-tree)
                           (if (null? (class-dec-super class-tree))
                               empty-dl
-                              (class-closure-instance-fields-init (binding-lookup (class-dec-super class-tree) state)))
+                              (class-closure-methods (binding-lookup (class-dec-super class-tree) state)))
                           (if (null? (class-dec-super class-tree))
                               empty-dl
-                              (class-closure-methods (binding-lookup (class-dec-super class-tree) state)))
+                              (class-closure-instance-fields-init (binding-lookup (class-dec-super class-tree) state)))
                           (class-dec-name class-tree))
                     (lambda (c) (next (binding-create (class-dec-name class-tree) c state)))
                     throw ctt rtt))
@@ -78,7 +78,7 @@
       (next closure)
       (state-class-body-statement (first-statement body-tree)
                                   closure
-                                  (lambda (c) (state-class-body (next-statements body-tree) c next throw ctt rtt)) 
+                                  (lambda (c) (state-class-body (next-statements body-tree) c next throw ctt rtt))
                                   ctt rtt)))
 
 (define (state-class-body-statement expr closure next ctt rtt)
@@ -92,19 +92,19 @@
 
 (define (state-class-declare-field declaration-body closure next ctt rtt)
   (next (class-closure-set-instance-fields-init
-         closure (dl-create (variable declaration-body)
-                            (if (initializes? declaration-body) (value declaration-body) 0)
-                            (class-closure-instance-fields-init closure)))))
+         closure (dl-cons (list (variable declaration-body)
+                                (if (initializes? declaration-body) (value declaration-body) 0))
+                          (class-closure-instance-fields-init closure)))))
 
 (define (state-class-declare-method declaration-body closure next ctt rtt)
   (next (class-closure-set-methods
-         closure (dl-create (func-dec-name declaration-body)
-                            (list (cons 'this (func-dec-formal-params declaration-body))
-                                  (func-dec-body declaration-body)
-                                  (lambda (new-state)
-                                    (binding-state-by-layer-idx new-state 1))
-                                  (lambda (new-state) (class-closure-name closure)))
-                            (class-closure-methods closure)))))
+         closure (dl-cons (list (func-dec-name declaration-body)
+                                (list (cons 'this (func-dec-formal-params declaration-body))
+                                      (func-dec-body declaration-body)
+                                      (lambda (new-state)
+                                        (binding-state-by-layer-idx new-state 1))
+                                      (lambda (new-state) (class-closure-name closure))))
+                          (class-closure-methods closure)))))
 
 ; Returns the return value after recursing through a series of statement lists
 (define (state-statement-list tree state next return break continue throw ctt rtt)
@@ -411,8 +411,10 @@
 
 (define (value-get-instance-field instance-atom field-atom state next throw ctt)
   (cond
-    [(not-equal? (binding-status instance-atom state) binding-init) (throw (~a "Class instance " instance-atom " does not exist" state))]
-    [(equal? (value-instance-field-index field-atom state ctt) dl-unbound) (throw (~a "Field " field-atom " could not be found in class " ctt) state)]
+    [(not-equal? (binding-status instance-atom state) binding-init)
+     (throw (~a "Class instance " instance-atom " does not exist" state))]
+    [(equal? (value-instance-field-index field-atom state ctt) dl-unbound)
+     (throw (~a "Field " field-atom " could not be found in class " ctt) state)]
     [else (next (list-ref (instance-closure-field-vals (binding-lookup instance-atom state))
                           (value-instance-field-index field-atom state ctt)))]))
 
@@ -530,8 +532,9 @@
 (define class-dec-extension caddr)
 (define (class-dec-super class-dec)
   (if (null? (class-dec-extension class-dec))
-      '()
+      no-superclass
       (cadr (class-dec-extension class-dec))))
+(define no-superclass '())
 (define class-dec-body cadddr)
 
 (define class-closure-super car)

@@ -27,3 +27,9 @@
     [((null? lis1) . and . (null? lis2)) #t]
     [((null? lis1) . or . (null? lis2)) #f]
     [else (same-length? (cdr lis1) (cdr lis2))]))
+
+; print x if condition, then return x
+(define (debug x [condition #t])
+  (begin
+    (if condition (display (~a (~e x) "\n")) #f)
+    x))

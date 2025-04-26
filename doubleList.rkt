@@ -6,7 +6,7 @@
 ;;;; Group Project 4: OO Interpreter
 ;;;; ***************************************************
 
-(provide dl-lookup dl-get-reverse-index dl-create dl-unbound
+(provide dl-lookup dl-get-reverse-index dl-cons dl-unbound
          dl-unbound empty-dl dl-empty? dl-names dl-vals)
 
 ; Return bound value of name in double-list
