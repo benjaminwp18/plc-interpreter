@@ -14,14 +14,17 @@
 (define (dl-lookup name double-list)
   (cond
     [(dl-empty? double-list) dl-unbound]
-    [(eq? (dl-first-name double-list) name) (dl-first-val double-list)]
+    [(equal? (dl-first-name double-list) name) (dl-first-val double-list)]
     [else (dl-lookup name (dl-cdr double-list))]))
 
 (define (dl-get-reverse-index name double-list)
   (cond
     [(dl-empty? double-list) dl-unbound]
-    [(eq? (dl-first-name double-list) name) (length double-list)]
+    [(eq? (dl-first-name double-list) name) (sub1 (dl-length double-list))]
     [else (dl-get-reverse-index name (dl-cdr double-list))]))
+
+(define (dl-length double-list)
+  (length (dl-vals double-list)))
 
 (define dl-unbound '())
 
