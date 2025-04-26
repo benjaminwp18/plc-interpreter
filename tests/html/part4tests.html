@@ -1340,5 +1340,31 @@ class B extends A {
 </code>
 </test>
 
+<test>
+<number>63</number>
+<description>Test 63: get fields from anonymous instance</description>
+<does-error>false</does-error>
+<result>123456</result>
+<main-class>A</main-class>
+<code>
+class A {
+  var x = 3000;
+  var y = 400;
+  var foo = 50;
+
+  static function main() {
+    var n = new B().x + new B().y + new A().x + new A().y + new B().foo + new B().bar;
+    return n;
+  }
+}
+
+class B extends A {
+  var x = 100000;
+  var y = 20000;
+  var bar = 6;
+}
+</code>
+</test>
+
 </body>
 </html>

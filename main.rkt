@@ -168,20 +168,19 @@
 (define (state-assign expr state next throw ctt rtt)
   (let ([left-side (variable expr)])
     (value-generic (value expr) state
-                   (lambda (v) (next
-                                (if (is-dot-operator? left-side)
-                                    (begin
-                                      (set-box! (value-instance-field-box
-                                                 (first-operand-literal left-side)
-                                                 (second-operand-literal left-side)
-                                                 state
-                                                 ; runtime type == compile time type for regular variables
-                                                 (instance-closure-runtime-type
-                                                  (binding-lookup
-                                                   (first-operand-literal left-side) state)))
-                                                v)
-                                      state)
-                                    (binding-set left-side v state))))
+                   (lambda (v) (if (is-dot-operator? left-side)
+                                   (value-generic (first-operand-literal left-side) state
+                                                  (lambda (closure)
+                                                    (value-instance-field-box
+                                                     closure
+                                                     (second-operand-literal left-side)
+                                                     state
+                                                     (lambda (b) (next (begin (set-box! b v) state)))
+                                                     throw
+                                                     ; runtime type == compile time type for regular variables
+                                                     (instance-closure-runtime-type closure)))
+                                                  throw ctt rtt)
+                                   (next (binding-set left-side v state))))
                    throw ctt rtt)))
 
 ; Returns state after an if statement
@@ -232,7 +231,7 @@
                                      throw ctt rtt)) ctt rtt)]
       [(contains-finally? expr)
        (state-block (try-body expr) state finally-cont return-finally-cont finally-cont finally-cont
-                    (lambda (e s) (state-generic (finally-block expr) s (lambda (s) (throw e s)) return break continue 
+                    (lambda (e s) (state-generic (finally-block expr) s (lambda (s) (throw e s)) return break continue
                                                  (lambda (e s) (state-generic (finally-block expr) s next return break continue throw ctt rtt)) ctt rtt)) ctt rtt)]
       [else (error "Try block must have at least one catch or finally block")])))
 
@@ -344,11 +343,14 @@
 
 ; get value of expression, assuming expression uses a binary operator
 (define (value-binary-operator expression state next throw ctt rtt)
-  (if (equal? (operator expression) 'dot)
-      (value-get-instance-field (first-operand-literal expression) (second-operand-literal expression)
-                                state next throw
-                                ; runtime type == compile time type for regular variables
-                                (instance-closure-runtime-type (binding-lookup (first-operand-literal expression) state)))
+  (if (is-dot-operator? expression)
+      (value-generic (first-operand-literal expression) state
+                     (lambda (closure)
+                       (value-get-instance-field closure (second-operand-literal expression)
+                                                 state next throw
+                                                 ; runtime type == compile time type for regular variables
+                                                 (instance-closure-runtime-type closure)))
+                     throw ctt rtt)
       (value-generic (first-operand-literal expression) state
                      (lambda (op1)
                        (value-generic (second-operand-literal expression) state
@@ -417,7 +419,7 @@
     [(eq? (binding-status expression state) binding-init) (next (binding-lookup expression state))]
     [(eq? (binding-status expression state) binding-uninit) (throw (~a expression " has not been assigned a value") state)]
     [(not-equal? (value-instance-field-index expression state ctt) dl-unbound)
-     (value-get-instance-field 'this expression state next throw ctt)]
+     (value-get-instance-field (binding-lookup 'this state) expression state next throw ctt)]
     [(not (pair? expression)) (throw (~a expression " has not been declared") state)]
     [(eq? (expr-start expression) 'funcall)
      (value-func-call (expr-func-call expression)
@@ -429,17 +431,14 @@
     [(has-first-operand? expression) (value-unary-operator expression state next throw ctt rtt)]
     [else (throw (~a "Invalid operator: " (operator expression)) state)]))
 
-(define (value-get-instance-field instance-atom field-atom state next throw ctt)
-  (next (unbox (value-instance-field-box instance-atom field-atom state ctt))))
+(define (value-get-instance-field instance-closure field-atom state next throw ctt)
+  (value-instance-field-box instance-closure field-atom state (lambda (b) (next (unbox b))) throw ctt))
 
-(define (value-instance-field-box instance-atom field-atom state ctt)
-  (cond
-    [(not-equal? (binding-status instance-atom state) binding-init)
-     (error (~a "Class instance " instance-atom " does not exist"))]
-    [(equal? (value-instance-field-index field-atom state ctt) dl-unbound)
-     (error (~a "Field " field-atom " could not be found in class " ctt))]
-    [else (list-ref (instance-closure-field-vals (binding-lookup instance-atom state))
-                    (value-instance-field-index field-atom state ctt))]))
+(define (value-instance-field-box instance-closure field-atom state next throw ctt)
+  (if (equal? (value-instance-field-index field-atom state ctt) dl-unbound)
+      (throw (~a "Field " field-atom " could not be found in class " ctt))
+      (next (list-ref (instance-closure-field-vals instance-closure)
+                      (value-instance-field-index field-atom state ctt)))))
 
 (define (value-instance-field-index field-atom state ctt)
   (if (equal? ctt no-type)
