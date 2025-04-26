@@ -373,7 +373,7 @@
                    (length (func-call-actual-params func-call)) ".") state)
         (state-statement-list (func-closure-body closure)
                               (bind-params (func-closure-formal-params closure)
-                                           (cons obj-expr (func-call-actual-params func-call))
+                                           (cons obj-expr (func-call-actual-params func-call)) ; the obj expr gets evaluated inside bind-params
                                            (binding-push-layer ((func-closure-scope-func closure) state) #t)
                                            state
                                            throw
