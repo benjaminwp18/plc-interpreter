@@ -6,16 +6,22 @@
 ;;;; Group Project 4: OO Interpreter
 ;;;; ***************************************************
 
-(provide dl-lookup dl-get-reverse-index dl-cons dl-unbound
-         dl-unbound empty-dl dl-empty? dl-names dl-vals)
+(provide dl-lookup dl-get-reverse-index dl-cons
+         dl-unbound empty-dl dl-empty? dl-names dl-box-vals)
 
 ; Return bound value of name in double-list
 ; Return dl-unbound if it isn't found
-(define (dl-lookup name double-list)
+(define (dl-lookup name double-list [boxed #f])
   (cond
     [(dl-empty? double-list) dl-unbound]
-    [(equal? (dl-first-name double-list) name) (dl-first-val double-list)]
+    [(equal? (dl-first-name double-list) name) (unbox (dl-first-val double-list))]
     [else (dl-lookup name (dl-cdr double-list))]))
+
+(define (dl-lookup-boxed name double-list)
+  (dl-lookup name double-list #t))
+
+(define (dl-box-vals double-list)
+  (map box (dl-vals double-list)))
 
 (define (dl-get-reverse-index name double-list)
   (cond
@@ -27,14 +33,6 @@
   (length (dl-vals double-list)))
 
 (define dl-unbound '())
-
-; Return double-list with new binding (name, value)
-; Error if binding already exists
-(define (dl-create name value double-list)
-  (cond
-    [(dl-empty? double-list) (dl-cons (list name value) empty-dl)]
-    [(eq? (dl-first-name double-list) name) (error (~a "Binding for " name " already exists in double list"))]
-    [else (dl-cons (dl-car double-list) (dl-create name value (dl-cdr double-list)))]))
 
 (define empty-dl '(() ()))
 (define (dl-empty? double-list)

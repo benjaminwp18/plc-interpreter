@@ -6,7 +6,7 @@
 ;;;; Group Project 4: OO Interpreter
 ;;;; ***************************************************
 
-(provide not-null? in-list? not-equal? same-length?)
+(provide not-null? in-list? not-equal? same-length? debug)
 
 ; returns true if a is not null; false otherwise
 (define (not-null? a) (not (null? a)))
@@ -31,5 +31,5 @@
 ; print x if condition, then return x
 (define (debug x [condition #t])
   (begin
-    (if condition (display (~a (~e x) "\n")) #f)
+    (if condition (display (~a "DEBUG > " (~e x) "\n")) #f)
     x))

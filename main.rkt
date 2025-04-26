@@ -153,16 +153,31 @@
 ; Returns state after a declaration
 ; Declaration statements may or may not contain an initialization value
 (define (state-declare expr state next throw ctt rtt)
-  (if (initializes? expr)
-      (value-generic (value expr)
-                     state
-                     (lambda (v) (next (binding-create (variable expr) v state)))
-                     throw ctt rtt)
-      (next (binding-create (variable expr) binding-uninit state))))
+  (cond
+    [(is-dot-operator? (variable expr)) (error (~a "Cannot declare the dot operation '"
+                                                   (variable expr) "'"))]
+    [(initializes? expr) (value-generic (value expr)
+                                        state
+                                        (lambda (v) (next (binding-create (variable expr) v state)))
+                                        throw ctt rtt)]
+    [else (next (binding-create (variable expr) binding-uninit state))]))
 
 ; Returns state after an assignment
 (define (state-assign expr state next throw ctt rtt)
-  (value-generic (value expr) state (lambda (v) (next (binding-set (variable expr) v state))) throw ctt rtt))
+  (let ([left-side (variable expr)])
+    (value-generic (value expr) state
+                   (lambda (v) (next
+                                (if (is-dot-operator? left-side)
+                                    (begin
+                                          (set-box! (value-instance-field-box
+                                                     (first-operand-literal left-side)
+                                                     (second-operand-literal left-side)
+                                                     state
+                                                     (instance-closure-runtime-type (binding-lookup (first-operand-literal left-side) state)))
+                                                    v)
+                                          state)
+                                         (binding-set left-side v state))))
+                   throw ctt rtt)))
 
 ; Returns state after an if statement
 (define (state-if expr state next return break continue throw ctt rtt)
@@ -366,7 +381,7 @@
 (define (value-instance-closure class-closure ctt rtt)
   (list
    (class-closure-name class-closure)
-   (reverse (dl-vals (class-closure-instance-fields-init class-closure)))))
+   (reverse (dl-box-vals (class-closure-instance-fields-init class-closure)))))
 
 ; get value of a function call
 (define (value-func-call func-call state return next throw ctt rtt)
@@ -410,13 +425,16 @@
     [else (throw (~a "Invalid operator: " (operator expression)) state)]))
 
 (define (value-get-instance-field instance-atom field-atom state next throw ctt)
+  (next (unbox (value-instance-field-box instance-atom field-atom state ctt))))
+
+(define (value-instance-field-box instance-atom field-atom state ctt)
   (cond
     [(not-equal? (binding-status instance-atom state) binding-init)
-     (throw (~a "Class instance " instance-atom " does not exist" state))]
+     (error (~a "Class instance " instance-atom " does not exist"))]
     [(equal? (value-instance-field-index field-atom state ctt) dl-unbound)
-     (throw (~a "Field " field-atom " could not be found in class " ctt) state)]
-    [else (next (list-ref (instance-closure-field-vals (binding-lookup instance-atom state))
-                          (value-instance-field-index field-atom state ctt)))]))
+     (error (~a "Field " field-atom " could not be found in class " ctt))]
+    [else (list-ref (instance-closure-field-vals (binding-lookup instance-atom state))
+                          (value-instance-field-index field-atom state ctt))]))
 
 (define (value-instance-field-index field-atom state ctt)
   (if (equal? ctt no-type)
@@ -512,6 +530,8 @@
 
 (define (has-second-operand? expression) (not-null? (cddr expression)))
 (define (has-first-operand? expression) (not-null? (cdr expression)))
+(define (is-dot-operator? expr)
+  (and (list? expr) (equal? (car expr) 'dot) (equal? (length expr) 3)))
 
 (define operator car)
 (define first-operand-literal cadr)
