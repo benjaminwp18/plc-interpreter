@@ -411,27 +411,39 @@
                               (lambda (s) (throw (~a "Break outside of loop in function " (func-call-name func-call)) state))
                               (lambda (s) (throw (~a "Continue outside of loop in function " (func-call-name func-call)) state))
                               (lambda (e s) (throw e state))
-                              (method-closure-type-func closure)
-                              (instance-closure-runtime-type (value-generic obj-expr state identity throw ctt rtt))))))
+                              ((method-closure-type-func closure) state)
+                              (value-generic obj-expr state (lambda (v) (instance-closure-runtime-type v)) throw ctt rtt)))))
 
 ; gets object expression to the left of the dot (e.g. (new A) or a)
 (define (calling-obj func-call)
   (let ([func-name (func-call-name func-call)])
-    (if (list? func-name)
+    (if (is-dot-operator? func-name)
         (dot-calling-obj func-name)
         'this)))
 
 ; gets closure of the method being called by looking in the calling object's runtime type class closure
 (define (method-closure func-call state throw ctt rtt)
   (let ([func-name (func-call-name func-call)])
-    (if (list? func-name)
-        (dl-lookup (dot-name func-name)
-                   (class-closure-methods (binding-lookup (instance-closure-runtime-type (value-generic (calling-obj func-call) state identity throw ctt rtt)) state)))
-        (dl-lookup func-name (class-closure-methods (binding-lookup (instance-closure-runtime-type (binding-lookup 'this state)) state))))))
+    (cond
+      [(not (is-dot-operator? func-name))
+       (dl-lookup func-name (class-closure-methods (binding-lookup rtt state)))]
+      [(eq? 'super (calling-obj func-call))
+       (dl-lookup (dot-name func-name)
+                  (class-closure-methods (binding-lookup (class-closure-super (binding-lookup ctt state)) state)))]
+      [else
+       (value-generic (calling-obj func-call)
+                      state
+                      (lambda (v) (dl-lookup (dot-name func-name)
+                                             (class-closure-methods (binding-lookup (instance-closure-runtime-type v) state))))
+                      throw
+                      ctt
+                      rtt)])))
+        
 
 ; get the value of expression, regardless of type or operator aryness
 (define (value-generic expression state next throw ctt rtt)
   (cond
+    [(eq? 'super expression) (next (binding-lookup 'this state))] ; gets evaluated in bind-params when binding to "this"
     [(number? expression) (next expression)]
     [(boolean-literal? expression) (next expression)]
     [(eq? (binding-status expression state) binding-init) (next (binding-lookup expression state))]
