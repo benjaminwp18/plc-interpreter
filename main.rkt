@@ -43,9 +43,11 @@
                   s
                   (lambda (s) binding-uninit)
                   identity
-                  (lambda (e s) (error (~a "Error in running main: " e)))
-                  (lambda (e s) (error (~a "Unexpected continue in main: " e)))
-                  (lambda (e s) (error (~a "Unhandled throw in main: " e))) no-type no-type))))))
+                  (lambda (s) (error (~a "Unexpected break in main")))
+                  (lambda (s) (error (~a "Unexpected continue in main")))
+                  (lambda (e s) (error (~a "Unhandled throw in main: " e)))
+                  no-type
+                  no-type))))))
    (lambda (e s) (error (~a "Error in global pass: " e)))
    no-type no-type))
 
