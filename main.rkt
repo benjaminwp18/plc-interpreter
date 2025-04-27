@@ -168,19 +168,29 @@
 (define (state-assign expr state next throw ctt rtt)
   (let ([left-side (variable expr)])
     (value-generic (value expr) state
-                   (lambda (v) (if (is-dot-operator? left-side)
-                                   (value-generic (first-operand-literal left-side) state
-                                                  (lambda (closure)
-                                                    (value-instance-field-box
-                                                     closure
-                                                     (second-operand-literal left-side)
-                                                     state
-                                                     (lambda (b) (next (begin (set-box! b v) state)))
-                                                     throw
-                                                     ; runtime type == compile time type for regular variables
-                                                     (instance-closure-runtime-type closure)))
-                                                  throw ctt rtt)
-                                   (next (binding-set left-side v state))))
+                   (lambda (v) (cond
+                                 [(is-dot-operator? left-side)
+                                  (value-generic (first-operand-literal left-side) state
+                                                 (lambda (closure)
+                                                   (value-instance-field-box
+                                                    closure
+                                                    (second-operand-literal left-side)
+                                                    state
+                                                    (lambda (b) (next (begin (set-box! b v) state)))
+                                                    throw
+                                                    ; runtime type == compile time type for regular variables
+                                                    (instance-closure-runtime-type closure)))
+                                                 throw ctt rtt)]
+                                 [(not (eq? (binding-status left-side state) binding-unbound))
+                                  (next (binding-set left-side v state))]
+                                 [else
+                                  (value-instance-field-box
+                                   (binding-lookup 'this state)
+                                   left-side
+                                   state
+                                   (lambda (b) (next (begin (set-box! b v) state)))
+                                   throw
+                                   ctt)]))
                    throw ctt rtt)))
 
 ; Returns state after an if statement
