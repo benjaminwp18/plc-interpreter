@@ -394,13 +394,15 @@
 (define (value-func-call func-call state return next throw ctt rtt)
   (let ([closure  (method-closure func-call state throw ctt rtt)]
         [obj-expr (calling-obj func-call)])
-    (if (not (same-length? (excluding-this (func-closure-formal-params closure)) (func-call-actual-params func-call)))
+    (if (not (eq? (expected-num-params closure) (length (func-call-actual-params func-call))))
         (throw (~a "Function called with wrong number of parameters. Expected "
-                   (length (excluding-this (func-closure-formal-params closure))) ", got "
+                   (expected-num-params closure) ", got "
                    (length (func-call-actual-params func-call)) ".") state)
         (state-statement-list (func-closure-body closure)
                               (bind-params (func-closure-formal-params closure)
-                                           (cons obj-expr (func-call-actual-params func-call)) ; the obj expr gets evaluated inside bind-params
+                                           (if (instance-method? closure)
+                                               (cons obj-expr (func-call-actual-params func-call)) ; the obj expr gets evaluated inside bind-params
+                                               (func-call-actual-params func-call))
                                            (binding-push-layer ((func-closure-scope-func closure) state) #t)
                                            state
                                            throw
@@ -411,7 +413,9 @@
                               (lambda (s) (throw (~a "Break outside of loop in function " (func-call-name func-call)) state))
                               (lambda (s) (throw (~a "Continue outside of loop in function " (func-call-name func-call)) state))
                               (lambda (e s) (throw e state))
-                              ((method-closure-type-func closure) state)
+                              (if (instance-method? closure)
+                                  ((method-closure-type-func closure) state)
+                                  ctt)
                               (value-generic obj-expr state (lambda (v) (instance-closure-runtime-type v)) throw ctt rtt)))))
 
 ; gets object expression to the left of the dot (e.g. (new A) or a)
@@ -426,7 +430,9 @@
   (let ([func-name (func-call-name func-call)])
     (cond
       [(not (is-dot-operator? func-name))
-       (dl-lookup func-name (class-closure-methods (binding-lookup rtt state)))]
+       (if (eq? (binding-status func-name state) binding-init)
+           (binding-lookup func-name state)
+           (dl-lookup func-name (class-closure-methods (binding-lookup rtt state))))]
       [(eq? 'super (calling-obj func-call))
        (dl-lookup (dot-name func-name)
                   (class-closure-methods (binding-lookup (class-closure-super (binding-lookup ctt state)) state)))]
@@ -586,6 +592,12 @@
 (define func-closure-scope-func caddr)
 (define method-closure-type-func cadddr)
 (define excluding-this cdr)
+(define (instance-method? closure)
+  (eq? 4 (length closure)))
+(define (expected-num-params closure)
+  (if (instance-method? closure)
+      (length (excluding-this (func-closure-formal-params closure)))
+      (length (func-closure-formal-params closure))))
 
 (define class-dec-name cadr)
 (define class-dec-extension caddr)
