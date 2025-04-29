@@ -14,7 +14,7 @@
 (define (dl-lookup name double-list [boxed #f])
   (cond
     [(dl-empty? double-list) dl-unbound]
-    [(equal? (dl-first-name double-list) name) (unbox (dl-first-val double-list))]
+    [(equal? (dl-first-name double-list) name) (dl-first-val double-list)]
     [else (dl-lookup name (dl-cdr double-list))]))
 
 (define (dl-lookup-boxed name double-list)

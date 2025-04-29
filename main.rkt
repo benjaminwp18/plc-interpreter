@@ -168,19 +168,29 @@
 (define (state-assign expr state next throw ctt rtt)
   (let ([left-side (variable expr)])
     (value-generic (value expr) state
-                   (lambda (v) (if (is-dot-operator? left-side)
-                                   (value-generic (first-operand-literal left-side) state
-                                                  (lambda (closure)
-                                                    (value-instance-field-box
-                                                     closure
-                                                     (second-operand-literal left-side)
-                                                     state
-                                                     (lambda (b) (next (begin (set-box! b v) state)))
-                                                     throw
-                                                     ; runtime type == compile time type for regular variables
-                                                     (instance-closure-runtime-type closure)))
-                                                  throw ctt rtt)
-                                   (next (binding-set left-side v state))))
+                   (lambda (v) (cond
+                                 [(is-dot-operator? left-side)
+                                  (value-generic (first-operand-literal left-side) state
+                                                 (lambda (closure)
+                                                   (value-instance-field-box
+                                                    closure
+                                                    (second-operand-literal left-side)
+                                                    state
+                                                    (lambda (b) (next (begin (set-box! b v) state)))
+                                                    throw
+                                                    ; runtime type == compile time type for regular variables
+                                                    (instance-closure-runtime-type closure)))
+                                                 throw ctt rtt)]
+                                 [(not (eq? (binding-status left-side state) binding-unbound))
+                                  (next (binding-set left-side v state))]
+                                 [else
+                                  (value-instance-field-box
+                                   (binding-lookup 'this state)
+                                   left-side
+                                   state
+                                   (lambda (b) (next (begin (set-box! b v) state)))
+                                   throw
+                                   ctt)]))
                    throw ctt rtt)))
 
 ; Returns state after an if statement
@@ -206,33 +216,28 @@
 
 ; Returns state after a try block (catch or finally block may be empty)
 (define (state-try expr state next return break continue throw ctt rtt)
-  (let ([finally-cont (lambda (s) (state-generic (finally-block expr) s next return break continue throw ctt rtt))]
-        [return-finally-cont (lambda (v) (state-generic (finally-block expr) state (lambda (s) (return v)) return break continue throw ctt rtt))])
+  (let ([new-next (lambda (s) (state-generic (finally-block expr) s next return break continue throw ctt rtt))]
+        [new-return (lambda (v) (state-generic (finally-block expr) state (lambda (s) (return v)) return break continue throw ctt rtt))]
+        [new-break (lambda (s) (state-generic (finally-block expr) s (lambda (s1) (break s1)) return break continue throw ctt rtt))]
+        [new-continue (lambda (s) (state-generic (finally-block expr) s (lambda (s1) (continue s1)) return break continue throw ctt rtt))]
+        [new-throw (lambda (e s) (state-generic (finally-block expr) s (lambda (s) (throw e s)) return break continue throw ctt rtt))])
     (cond
       [(and (contains-catch? expr) (contains-finally? expr))
-       (state-block (try-body expr) state finally-cont return-finally-cont finally-cont finally-cont
+       (state-block (try-body expr) state new-next new-return new-break new-continue
                     (lambda (e s)
                       (state-generic (catch-block expr)
                                      (binding-create (caught-value expr) e s)
-                                     finally-cont
-                                     return-finally-cont
-                                     finally-cont
-                                     finally-cont
-                                     (lambda (e s) (state-generic (finally-block expr) s next return break continue throw ctt rtt)) ctt rtt)) ctt rtt)]
+                                     new-next new-return new-break new-continue new-throw ctt rtt))
+                    ctt rtt)]
       [(contains-catch? expr)
        (state-block (try-body expr) state next return break continue
                     (lambda (e s)
                       (state-generic (catch-block expr)
                                      (binding-create (caught-value expr) e s)
-                                     next
-                                     return
-                                     break
-                                     continue
-                                     throw ctt rtt)) ctt rtt)]
+                                     next return break continue throw ctt rtt))
+                    ctt rtt)]
       [(contains-finally? expr)
-       (state-block (try-body expr) state finally-cont return-finally-cont finally-cont finally-cont
-                    (lambda (e s) (state-generic (finally-block expr) s (lambda (s) (throw e s)) return break continue
-                                                 (lambda (e s) (state-generic (finally-block expr) s next return break continue throw ctt rtt)) ctt rtt)) ctt rtt)]
+       (state-block (try-body expr) state new-next new-return new-break new-continue new-throw ctt rtt)]
       [else (error "Try block must have at least one catch or finally block")])))
 
 
@@ -392,14 +397,17 @@
 
 ; get value of a function call
 (define (value-func-call func-call state return next throw ctt rtt)
-  (let ([closure (binding-lookup (func-call-name func-call) state)])
-    (if (not (same-length? (func-closure-formal-params closure) (func-call-actual-params func-call)))
+  (let ([closure  (method-closure func-call state throw ctt rtt)]
+        [obj-expr (calling-obj func-call)])
+    (if (not (eq? (expected-num-params closure) (length (func-call-actual-params func-call))))
         (throw (~a "Function called with wrong number of parameters. Expected "
-                   (length (func-closure-formal-params closure)) ", got "
+                   (expected-num-params closure) ", got "
                    (length (func-call-actual-params func-call)) ".") state)
         (state-statement-list (func-closure-body closure)
                               (bind-params (func-closure-formal-params closure)
-                                           (func-call-actual-params func-call)
+                                           (if (instance-method? closure)
+                                               (cons obj-expr (func-call-actual-params func-call)) ; the obj expr gets evaluated inside bind-params
+                                               (func-call-actual-params func-call))
                                            (binding-push-layer ((func-closure-scope-func closure) state) #t)
                                            state
                                            throw
@@ -409,11 +417,44 @@
                               next
                               (lambda (s) (throw (~a "Break outside of loop in function " (func-call-name func-call)) state))
                               (lambda (s) (throw (~a "Continue outside of loop in function " (func-call-name func-call)) state))
-                              (lambda (e s) (throw e state)) ctt rtt))))
+                              (lambda (e s) (throw e state))
+                              (if (instance-method? closure)
+                                  ((method-closure-type-func closure) state)
+                                  ctt)
+                              (value-generic obj-expr state (lambda (v) (instance-closure-runtime-type v)) throw ctt rtt)))))
+
+; gets object expression to the left of the dot (e.g. (new A) or a)
+(define (calling-obj func-call)
+  (let ([func-name (func-call-name func-call)])
+    (if (is-dot-operator? func-name)
+        (dot-calling-obj func-name)
+        'this)))
+
+; gets closure of the method being called by looking in the calling object's runtime type class closure
+(define (method-closure func-call state throw ctt rtt)
+  (let ([func-name (func-call-name func-call)])
+    (cond
+      [(not (is-dot-operator? func-name))
+       (if (eq? (binding-status func-name state) binding-init)
+           (binding-lookup func-name state)
+           (dl-lookup func-name (class-closure-methods (binding-lookup rtt state))))]
+      [(eq? 'super (calling-obj func-call))
+       (dl-lookup (dot-name func-name)
+                  (class-closure-methods (binding-lookup (class-closure-super (binding-lookup ctt state)) state)))]
+      [else
+       (value-generic (calling-obj func-call)
+                      state
+                      (lambda (v) (dl-lookup (dot-name func-name)
+                                             (class-closure-methods (binding-lookup (instance-closure-runtime-type v) state))))
+                      throw
+                      ctt
+                      rtt)])))
+        
 
 ; get the value of expression, regardless of type or operator aryness
 (define (value-generic expression state next throw ctt rtt)
   (cond
+    [(eq? 'super expression) (next (binding-lookup 'this state))] ; gets evaluated in bind-params when binding to "this"
     [(number? expression) (next expression)]
     [(boolean-literal? expression) (next expression)]
     [(eq? (binding-status expression state) binding-init) (next (binding-lookup expression state))]
@@ -548,9 +589,20 @@
 (define func-call-name car)
 (define func-call-actual-params cdr)
 
+(define dot-calling-obj cadr)
+(define dot-name caddr)
+
 (define func-closure-formal-params car)
 (define func-closure-body cadr)
 (define func-closure-scope-func caddr)
+(define method-closure-type-func cadddr)
+(define excluding-this cdr)
+(define (instance-method? closure)
+  (eq? 4 (length closure)))
+(define (expected-num-params closure)
+  (if (instance-method? closure)
+      (length (excluding-this (func-closure-formal-params closure)))
+      (length (func-closure-formal-params closure))))
 
 (define class-dec-name cadr)
 (define class-dec-extension caddr)
